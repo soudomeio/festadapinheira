@@ -202,11 +202,28 @@ function isUUID(id) { return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}
 async function addMatchSupabase(fromId, toId, status) {
   if (isUUID(fromId) && isUUID(toId)) {
     try {
-      const data = await apiPost('matches', { from_profile_id: fromId, to_profile_id: toId, status });
-      if (data && data.length > 0) return data[0];
-    } catch (e) { console.log('addMatch erro:', e.message); }
+      // Verifica se ja existe um match entre esses dois perfis
+      const existing = await apiGet(`matches?select=*&from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`);
+      
+      if (existing && existing.length > 0) {
+        // Ja existe - faz UPDATE do status
+        const updated = await apiPatch('matches', `?from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`, { status });
+        if (updated && updated.length > 0) return updated[0];
+      } else {
+        // Nao existe - cria novo
+        const data = await apiPost('matches', { from_profile_id: fromId, to_profile_id: toId, status });
+        if (data && data.length > 0) return data[0];
+      }
+    } catch (e) { 
+      // Se for erro de conflito (409), ignora
+      if (e.message && e.message.includes('409')) {
+        console.log('Match ja existe, ignorando');
+      } else {
+        console.log('addMatch erro:', e.message); 
+      }
+    }
   }
-  // Local fallback (nao salva no Supabase mas funciona na tela)
+  // Fallback local
   return { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: status === 'interesse' && Math.random() > 0.3, created_at: new Date().toISOString() };
 }
 
