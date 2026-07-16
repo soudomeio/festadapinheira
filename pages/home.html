@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Inicio - Festa da Pinheira</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Guest Badge -->
+    <div id="guestBadge" class="guest-badge hidden">CONVIDADO</div>
+
+    <!-- Top Bar -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 12px solid #ecc94b;"></div>
+        <span style="color: #ecc94b; font-weight: 700; font-size: 13px; letter-spacing: 0.5px;">FESTA DA PINHEIRA</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="userAvatar" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: #2d3748;">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="#4a5568"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Area -->
+    <div id="cardArea" style="flex: 1; display: flex; flex-direction: column; padding-bottom: 16px;">
+      <!-- Profile Card -->
+      <div id="profileCard" class="card-container" style="flex: 1; min-height: 400px;">
+        <div id="cardBg" class="card-image" style="background-image: url('');"></div>
+        <div class="card-overlay"></div>
+        <button id="infoBtn" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </button>
+        <div class="card-info">
+          <h2 id="cardName" class="card-name">--</h2>
+          <div class="card-location">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span id="cardCity">--</span>
+          </div>
+          <div id="cardTags" class="card-tags"></div>
+          <div id="cardDetails" style="margin-top: 12px; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); border-radius: 12px; padding: 12px; display: none;">
+            <p style="color: #fff; font-size: 13px;"><span style="color: #a0aec0;">Ele:</span> <span id="detailDele">--</span></p>
+            <p style="color: #fff; font-size: 13px; margin-top: 4px;"><span style="color: #a0aec0;">Ela:</span> <span id="detailDela">--</span></p>
+            <p id="detailBio" style="color: #a0aec0; font-size: 12px; margin-top: 6px; font-style: italic;"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Swipe Buttons -->
+      <div class="swipe-actions">
+        <button id="btnNao" class="swipe-btn reject">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <button id="btnTalvez" class="swipe-btn maybe">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </button>
+        <button id="btnInteresse" class="swipe-btn like">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+      </div>
+      <p style="text-align: center; color: #4a5568; font-size: 11px;">Deslize para os lados ou use os botoes</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center;">
+      <div style="width: 80px; height: 80px; background: #2d3748; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </div>
+      <h3 style="color: #fff; font-size: 18px; margin-bottom: 8px;">Sem perfis por enquanto</h3>
+      <p style="color: #a0aec0; font-size: 14px;">Volte mais tarde para ver novos casais!</p>
+      <button onclick="resetCards()" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 24px;">Ver Novamente</button>
+    </div>
+
+    <!-- Match Overlay -->
+    <div id="matchOverlay" class="match-overlay">
+      <div class="match-content">
+        <div class="heart-pulse" style="font-size: 80px; margin-bottom: 20px;">💕</div>
+        <h2 style="color: #fff; font-size: 32px; font-weight: 700; margin-bottom: 8px;">E um Match!</h2>
+        <p style="color: #a0aec0; margin-bottom: 24px;">Voces se interessaram!</p>
+        <button onclick="closeMatch()" class="btn btn-primary" style="width: auto; padding: 14px 32px;">Continuar</button>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="home.html" class="nav-item active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Inicio
+      </a>
+      <a href="chat.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Chat
+      </a>
+      <a href="matches.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Matches
+      </a>
+      <a href="perfil.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Perfil
+      </a>
+    </nav>
+  </div>
+
+  <script src="../assets/js/app.js"></script>
+  <script>
+    // Setup user avatar
+    const currentUser = getCurrentUser();
+    if (currentUser && currentUser.fotos && currentUser.fotos[0]) {
+      document.getElementById('userAvatar').innerHTML = `<img src="${currentUser.fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
+    }
+
+    // Load profiles
+    let allProfiles = DB.get('profiles', []);
+    let currentIndex = DB.get('swipeIndex', 0);
+    const myId = currentUser ? currentUser.id : 'guest';
+
+    function getAvailableProfiles() {
+      return allProfiles.filter(p => p.id !== myId);
+    }
+
+    function showProfile() {
+      const available = getAvailableProfiles();
+      if (currentIndex >= available.length) {
+        document.getElementById('cardArea').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('emptyState').style.display = 'flex';
+        return;
+      }
+
+      document.getElementById('cardArea').classList.remove('hidden');
+      document.getElementById('emptyState').classList.add('hidden');
+
+      const p = available[currentIndex];
+      document.getElementById('cardBg').style.backgroundImage = `url('${p.fotos[0]}')`;
+      document.getElementById('cardName').textContent = p.nick;
+      document.getElementById('cardCity').textContent = p.cidade;
+      document.getElementById('detailDele').textContent = `${p.nomeDele}, ${p.idadeDele} anos`;
+      document.getElementById('detailDela').textContent = `${p.nomeDela}, ${p.idadeDela} anos`;
+      document.getElementById('detailBio').textContent = p.bio || '';
+
+      const tagsEl = document.getElementById('cardTags');
+      tagsEl.innerHTML = '';
+      p.preferencias.slice(0, 3).forEach(pref => {
+        const label = getPrefLabel(pref);
+        tagsEl.innerHTML += `<span class="tag">${label}</span>`;
+      });
+      if (p.preferencias.length > 3) {
+        tagsEl.innerHTML += `<span style="color: #a0aec0; font-size: 11px;">+${p.preferencias.length - 3}</span>`;
+      }
+    }
+
+    function swipe(direction) {
+      const available = getAvailableProfiles();
+      if (currentIndex >= available.length) return;
+
+      const profile = available[currentIndex];
+      const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
+      const result = addMatch(profile.id, statusMap[direction]);
+
+      if (direction === 'right' && result.mutual) {
+        document.getElementById('matchOverlay').classList.add('show');
+      }
+
+      currentIndex++;
+      DB.set('swipeIndex', currentIndex);
+      showProfile();
+    }
+
+    window.resetCards = function() {
+      currentIndex = 0;
+      DB.set('swipeIndex', 0);
+      showProfile();
+    };
+
+    window.closeMatch = function() {
+      document.getElementById('matchOverlay').classList.remove('show');
+    };
+
+    // Info toggle
+    let infoOpen = false;
+    document.getElementById('infoBtn').addEventListener('click', () => {
+      infoOpen = !infoOpen;
+      document.getElementById('cardDetails').style.display = infoOpen ? 'block' : 'none';
+    });
+
+    // Swipe buttons
+    document.getElementById('btnNao').addEventListener('click', () => swipe('left'));
+    document.getElementById('btnTalvez').addEventListener('click', () => swipe('up'));
+    document.getElementById('btnInteresse').addEventListener('click', () => swipe('right'));
+
+    // Touch swipe
+    let startX = 0;
+    const card = document.getElementById('profileCard');
+    card.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    card.addEventListener('touchend', e => {
+      const diff = e.changedTouches[0].clientX - startX;
+      if (Math.abs(diff) > 80) swipe(diff > 0 ? 'right' : 'left');
+    }, { passive: true });
+
+    showProfile();
+  </script>
+</body>
+</html>

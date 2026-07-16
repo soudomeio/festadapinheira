@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Festa da Pinheira</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Splash Screen -->
+    <div id="splash" class="splash-screen">
+      <div class="pine-logo">
+        <div class="pine-layer layer-3"></div>
+        <div class="pine-layer layer-2"></div>
+        <div class="pine-layer layer-1"></div>
+        <div class="pine-trunk"></div>
+      </div>
+      <div class="logo-title">FESTA DA PINHEIRA</div>
+    </div>
+
+    <!-- Login Form -->
+    <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px;">
+      <div style="margin-bottom: 40px; text-align: center;">
+        <div style="width: 0; height: 0; border-left: 24px solid transparent; border-right: 24px solid transparent; border-bottom: 36px solid #ecc94b; margin: 0 auto 12px; filter: drop-shadow(0 0 4px rgba(236,201,75,0.5));"></div>
+        <h1 style="color: #ecc94b; font-size: 22px; font-weight: 700;">FESTA DA PINHEIRA</h1>
+      </div>
+
+      <div style="width: 100%; max-width: 320px;">
+        <div class="input-group">
+          <label class="input-label">Nick do Casal</label>
+          <input type="text" id="loginNick" class="input-field" placeholder="Ex: CasalPinheira">
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Senha</label>
+          <input type="password" id="loginSenha" class="input-field" placeholder="Sua senha">
+        </div>
+
+        <p id="loginError" class="input-error text-center hidden"></p>
+
+        <button id="btnLogin" class="btn btn-primary" style="margin-top: 8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Entrar
+        </button>
+
+        <p style="text-align: center; color: #a0aec0; font-size: 14px; margin-top: 20px;">
+          Ainda não tem conta? <a href="pages/cadastro.html" style="color: #ecc94b; font-weight: 500; text-decoration: none;">Cadastre-se</a>
+        </p>
+
+        <p style="text-align: center; margin-top: 12px;">
+          <a href="pages/home.html" style="color: #4a5568; font-size: 13px; text-decoration: none;">Entrar como convidado</a>
+        </p>
+
+        <p style="text-align: center; color: #4a5568; font-size: 12px; margin-top: 32px;">
+          Este aplicativo é destinado a maiores de 18 anos.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    document.getElementById('btnLogin').addEventListener('click', function() {
+      const nick = document.getElementById('loginNick').value.trim();
+      const senha = document.getElementById('loginSenha').value;
+      const errorEl = document.getElementById('loginError');
+
+      if (!nick || !senha) {
+        errorEl.textContent = 'Preencha todos os campos';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (login(nick, senha)) {
+        window.location.href = 'pages/home.html';
+      } else {
+        errorEl.textContent = 'Nick ou senha incorretos';
+        errorEl.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
