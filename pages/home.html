@@ -121,7 +121,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
       </div>
-      <p style="text-align: center; color: #4a5568; font-size: 11px;" id="swipeHint">Deslize para os lados ou use os botoes</p>
+      <p style="text-align: center; color: #4a5568; font-size: 11px;" id="swipeHint">Perfis restantes: <span id="perfisRestantes">0</span></p>
     </div>
 
     <!-- Empty State -->
@@ -235,6 +235,8 @@
       document.getElementById('cardArea').style.display = 'flex';
       document.getElementById('emptyState').classList.add('hidden');
       document.getElementById('emptyState').style.display = 'none';
+      const available = getAvailableProfiles();
+      document.getElementById('perfisRestantes').textContent = available.length > 0 ? `1 de ${available.length}` : '0';
       showProfile();
     };
 
@@ -318,6 +320,10 @@
         tagsEl.innerHTML += `<span class="tag">${getPrefLabel(pref)}</span>`;
       });
 
+      // Atualiza contador de perfis restantes
+      const available = getAvailableProfiles();
+      document.getElementById('perfisRestantes').textContent = `${currentIndex + 1} de ${available.length}`;
+
       // Mostra acao anterior se existe
       const acaoAnt = getAcaoAnterior(p.id);
       const badge = document.getElementById('acaoBadge');
@@ -380,6 +386,8 @@
       }
 
       currentIndex++;
+      const available = getAvailableProfiles();
+      document.getElementById('perfisRestantes').textContent = currentIndex < available.length ? `${currentIndex + 1} de ${available.length}` : '0';
       showProfile();
     }
 
