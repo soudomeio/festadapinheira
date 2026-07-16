@@ -296,12 +296,10 @@
       if (el) el.scrollTop = el.scrollHeight;
     }
 
-    // Realtime subscription
-    if (sbClient) {
-      subscribeToMessages(() => {
-        if (activeTab === 'global') renderGlobalMessages();
-      });
-    }
+    // Atualizar mensagens a cada 5 segundos
+    setInterval(() => {
+      if (activeTab === 'global') renderGlobalMessages();
+    }, 5000);
 
     // Init
     loadProfiles().then(() => renderGlobalMessages());
