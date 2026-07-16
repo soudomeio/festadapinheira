@@ -1,14 +1,15 @@
 // ===== FESTA DA PINHEIRA - App com Supabase =====
 
-const SUPABASE_URL = 'https://zxmddvkjspbapzifrhqh.supabase.co';
+const SUPABASE_URL = 'https://zxmddvkjspbapzifrhqh.sbClient.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4bWRkdmtqc3BiYXB6aWZyaHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNzA5MTksImV4cCI6MjA5OTc0NjkxOX0.VYhoyzy_AYHTh5qHTrR7mIsmCb9Tz1cMSJvP7O_sI6o';
 
-let supabase;
+// Usamos 'sbClient' em vez de 'sbClient' para nao conflitar com a CDN
+let sbClient = null;
 
 // Inicializar Supabase
 function initSupabase() {
-  if (window.supabase) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  if (window.sbClient && window.sbClient.createClient) {
+    sbClient = window.sbClient.createClient(SUPABASE_URL, SUPABASE_KEY);
   }
 }
 
@@ -47,8 +48,8 @@ function logout() {
 
 // Login com Supabase
 async function loginSupabase(nick, senha) {
-  if (!supabase) return false;
-  const { data, error } = await supabase
+  if (!sbClient) return false;
+  const { data, error } = await sbClient
     .from('users')
     .select('*, profiles(*)')
     .eq('nick', nick)
@@ -68,10 +69,10 @@ async function loginSupabase(nick, senha) {
 
 // Cadastro com Supabase
 async function registerSupabase(userData, senha) {
-  if (!supabase) return false;
+  if (!sbClient) return false;
 
   // Verificar se nick existe
-  const { data: existing } = await supabase
+  const { data: existing } = await sbClient
     .from('profiles')
     .select('nick')
     .eq('nick', userData.nick)
@@ -80,7 +81,7 @@ async function registerSupabase(userData, senha) {
   if (existing) return false;
 
   // Criar profile
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await sbClient
     .from('profiles')
     .insert([{
       nick: userData.nick,
@@ -100,7 +101,7 @@ async function registerSupabase(userData, senha) {
   if (profileError || !profile) return false;
 
   // Criar usuario
-  const { error: userError } = await supabase
+  const { error: userError } = await sbClient
     .from('users')
     .insert([{
       nick: userData.nick,
@@ -116,8 +117,8 @@ async function registerSupabase(userData, senha) {
 
 // Verificar se nick existe
 async function checkNickExistsSupabase(nick) {
-  if (!supabase) return false;
-  const { data } = await supabase
+  if (!sbClient) return false;
+  const { data } = await sbClient
     .from('profiles')
     .select('nick')
     .eq('nick', nick)
@@ -127,11 +128,11 @@ async function checkNickExistsSupabase(nick) {
 
 // Upload de imagem para Supabase Storage
 async function uploadImage(file) {
-  if (!supabase) return null;
+  if (!sbClient) return null;
 
   const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
 
-  const { data, error } = await supabase.storage
+  const { data, error } = await sbClient.storage
     .from('fotos')
     .upload(fileName, file, {
       cacheControl: '3600',
@@ -141,7 +142,7 @@ async function uploadImage(file) {
   if (error) return null;
 
   // Retornar URL publica
-  const { data: urlData } = supabase.storage
+  const { data: urlData } = sbClient.storage
     .from('fotos')
     .getPublicUrl(fileName);
 
@@ -150,8 +151,8 @@ async function uploadImage(file) {
 
 // ===== PROFILES =====
 async function getProfiles() {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!sbClient) return [];
+  const { data, error } = await sbClient
     .from('profiles')
     .select('*')
     .order('created_at', { ascending: false });
@@ -159,8 +160,8 @@ async function getProfiles() {
 }
 
 async function updateProfile(profileId, updates) {
-  if (!supabase) return false;
-  const { error } = await supabase
+  if (!sbClient) return false;
+  const { error } = await sbClient
     .from('profiles')
     .update(updates)
     .eq('id', profileId);
@@ -169,9 +170,9 @@ async function updateProfile(profileId, updates) {
 
 // ===== MATCHES =====
 async function addMatchSupabase(fromId, toId, status) {
-  if (!supabase) return null;
+  if (!sbClient) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await sbClient
     .from('matches')
     .insert([{
       from_profile_id: fromId,
@@ -186,8 +187,8 @@ async function addMatchSupabase(fromId, toId, status) {
 }
 
 async function getMatchesSupabase() {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!sbClient) return [];
+  const { data, error } = await sbClient
     .from('matches')
     .select('*')
     .order('created_at', { ascending: false });
@@ -196,9 +197,9 @@ async function getMatchesSupabase() {
 
 // ===== MESSAGES =====
 async function sendMessageSupabase(senderId, senderNick, content, isPrivate, receiverId) {
-  if (!supabase) return null;
+  if (!sbClient) return null;
 
-  const { data, error } = await supabase
+  const { data, error } = await sbClient
     .from('messages')
     .insert([{
       sender_id: senderId,
@@ -215,8 +216,8 @@ async function sendMessageSupabase(senderId, senderNick, content, isPrivate, rec
 }
 
 async function getMessagesSupabase() {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!sbClient) return [];
+  const { data, error } = await sbClient
     .from('messages')
     .select('*')
     .order('created_at', { ascending: true });
@@ -224,8 +225,8 @@ async function getMessagesSupabase() {
 }
 
 async function getGlobalMessages() {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!sbClient) return [];
+  const { data, error } = await sbClient
     .from('messages')
     .select('*')
     .eq('is_private', false)
@@ -234,8 +235,8 @@ async function getGlobalMessages() {
 }
 
 async function getPrivateMessages(userId, otherId) {
-  if (!supabase) return [];
-  const { data, error } = await supabase
+  if (!sbClient) return [];
+  const { data, error } = await sbClient
     .from('messages')
     .select('*')
     .eq('is_private', true)
@@ -246,16 +247,16 @@ async function getPrivateMessages(userId, otherId) {
 
 // ===== REALTIME =====
 function subscribeToMessages(callback) {
-  if (!supabase) return null;
-  return supabase
+  if (!sbClient) return null;
+  return sbClient
     .channel('messages')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, callback)
     .subscribe();
 }
 
 function subscribeToMatches(callback) {
-  if (!supabase) return null;
-  return supabase
+  if (!sbClient) return null;
+  return sbClient
     .channel('matches')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, callback)
     .subscribe();

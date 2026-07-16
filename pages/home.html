@@ -199,7 +199,7 @@
       const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
 
       // Save match to Supabase
-      if (currentUser && supabase) {
+      if (currentUser && sbClient) {
         try {
           const result = await addMatchSupabase(currentUser.id, profile.id, statusMap[direction]);
           if (direction === 'right' && result && result.mutual) {
