@@ -64,6 +64,26 @@
       <button id="btnNext1" class="btn btn-primary" style="margin-top: 8px;">Continuar</button>
     </div>
 
+    <!-- Crop Modal -->
+    <div id="cropModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; flex-direction: column;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #2d3748;">
+        <button onclick="closeCropModal()" style="background: none; border: none; color: #a0aec0; font-size: 14px; cursor: pointer;">Cancelar</button>
+        <span style="color: #fff; font-weight: 600; font-size: 15px;">Ajustar Foto</span>
+        <button onclick="confirmCrop()" style="background: #ecc94b; border: none; color: #1a202c; padding: 6px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer;">OK</button>
+      </div>
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;" id="cropContainer">
+        <canvas id="cropCanvas" style="max-width: 100%; max-height: 100%; touch-action: none;"></canvas>
+      </div>
+      <div style="padding: 16px; background: #1a202c; border-top: 1px solid #2d3748;">
+        <div style="display: flex; align-items: center; gap: 12px; justify-content: center;">
+          <button onclick="adjustZoom(-0.1)" style="width: 40px; height: 40px; background: #2d3748; border: none; border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer;">-</button>
+          <span style="color: #a0aec0; font-size: 13px;">Zoom</span>
+          <button onclick="adjustZoom(0.1)" style="width: 40px; height: 40px; background: #2d3748; border: none; border-radius: 50%; color: #fff; font-size: 20px; cursor: pointer;">+</button>
+        </div>
+        <p style="color: #4a5568; font-size: 11px; text-align: center; margin-top: 8px;">Arraste para posicionar · Ajuste o zoom</p>
+      </div>
+    </div>
+
     <!-- Step 2: Photos & Preferences -->
     <div id="step2" class="page-content hidden">
       <h2 class="section-title">Fotos e Preferencias</h2>
@@ -201,7 +221,134 @@
 
     document.getElementById('btnBack').addEventListener('click', () => showStep(1));
 
-    // Photo handling with REAL upload
+    // ===== CROP =====
+    let cropState = { img: null, scale: 1, x: 0, y: 0, dragging: false, lastX: 0, lastY: 0, file: null };
+    const cropCanvas = document.getElementById('cropCanvas');
+    const cropCtx = cropCanvas.getContext('2d');
+    const CROP_RATIO = 3 / 4; // width / height (proporcao do card)
+
+    function openCropModal(file) {
+      cropState.file = file;
+      cropState.scale = 1;
+      cropState.x = 0;
+      cropState.y = 0;
+
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        cropState.img = new Image();
+        cropState.img.onload = () => {
+          document.getElementById('cropModal').style.display = 'flex';
+          fitImageToCrop();
+          drawCrop();
+        };
+        cropState.img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function closeCropModal() {
+      document.getElementById('cropModal').style.display = 'none';
+      cropState.img = null;
+      cropState.file = null;
+      document.getElementById('fileInput').value = '';
+    }
+
+    function fitImageToCrop() {
+      const container = document.getElementById('cropContainer');
+      const cw = container.clientWidth - 32;
+      const ch = container.clientHeight - 32;
+      const cropH = Math.min(ch, cw / CROP_RATIO);
+      const cropW = cropH * CROP_RATIO;
+      cropCanvas.width = cropW * 2; // alta resolucao
+      cropCanvas.height = cropH * 2;
+      cropCanvas.style.width = cropW + 'px';
+      cropCanvas.style.height = cropH + 'px';
+
+      // Fit image inside crop
+      const imgRatio = cropState.img.width / cropState.img.height;
+      if (imgRatio > CROP_RATIO) {
+        cropState.scale = (cropCanvas.height / cropState.img.height);
+      } else {
+        cropState.scale = (cropCanvas.width / cropState.img.width);
+      }
+      cropState.x = (cropCanvas.width - cropState.img.width * cropState.scale) / 2;
+      cropState.y = (cropCanvas.height - cropState.img.height * cropState.scale) / 2;
+    }
+
+    function drawCrop() {
+      if (!cropState.img) return;
+      cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+      cropCtx.drawImage(cropState.img, cropState.x, cropState.y, cropState.img.width * cropState.scale, cropState.img.height * cropState.scale);
+    }
+
+    window.adjustZoom = function(delta) {
+      const newScale = cropState.scale + delta;
+      if (newScale < 0.3 || newScale > 5) return;
+      // Zoom from center
+      const cx = cropCanvas.width / 2;
+      const cy = cropCanvas.height / 2;
+      cropState.x = cx - (cx - cropState.x) * (newScale / cropState.scale);
+      cropState.y = cy - (cy - cropState.y) * (newScale / cropState.scale);
+      cropState.scale = newScale;
+      drawCrop();
+    };
+
+    // Drag
+    cropCanvas.addEventListener('mousedown', (e) => { cropState.dragging = true; cropState.lastX = e.clientX; cropState.lastY = e.clientY; });
+    cropCanvas.addEventListener('mousemove', (e) => {
+      if (!cropState.dragging) return;
+      const dx = (e.clientX - cropState.lastX) * 2; // *2 porque canvas e maior
+      const dy = (e.clientY - cropState.lastY) * 2;
+      cropState.x += dx; cropState.y += dy;
+      cropState.lastX = e.clientX; cropState.lastY = e.clientY;
+      drawCrop();
+    });
+    window.addEventListener('mouseup', () => cropState.dragging = false);
+    // Touch
+    cropCanvas.addEventListener('touchstart', (e) => { cropState.dragging = true; cropState.lastX = e.touches[0].clientX; cropState.lastY = e.touches[0].clientY; }, { passive: true });
+    cropCanvas.addEventListener('touchmove', (e) => {
+      if (!cropState.dragging) return;
+      const dx = (e.touches[0].clientX - cropState.lastX) * 2;
+      const dy = (e.touches[0].clientY - cropState.lastY) * 2;
+      cropState.x += dx; cropState.y += dy;
+      cropState.lastX = e.touches[0].clientX; cropState.lastY = e.touches[0].clientY;
+      drawCrop();
+    }, { passive: true });
+    window.addEventListener('touchend', () => cropState.dragging = false);
+
+    window.confirmCrop = async function() {
+      if (!cropState.img) return;
+      const statusEl = document.getElementById('uploadStatus');
+
+      // Converte canvas para Blob (ja cortado na proporcao certa)
+      const blob = await new Promise(resolve => cropCanvas.toBlob(resolve, 'image/jpeg', 0.85));
+      const croppedFile = new File([blob], cropState.file.name, { type: 'image/jpeg' });
+
+      // Preview
+      const previewUrl = cropCanvas.toDataURL('image/jpeg', 0.85);
+      const previewIdx = formData.fotos.length;
+      addPhotoPreview(previewUrl, previewIdx);
+
+      closeCropModal();
+
+      // Upload
+      statusEl.textContent = 'Enviando...';
+      try {
+        const url = await uploadImage(croppedFile);
+        if (url) {
+          formData.fotos.push(url);
+          statusEl.textContent = '';
+        } else {
+          formData.fotos.push(previewUrl);
+          statusEl.textContent = 'Salvo localmente';
+        }
+      } catch (err) {
+        formData.fotos.push(previewUrl);
+        statusEl.textContent = 'Erro no upload - salvo localmente';
+      }
+    };
+
+    // ===== Photo handling =====
     const fileInput = document.getElementById('fileInput');
 
     document.getElementById('btnAddPhoto').addEventListener('click', () => {
@@ -211,39 +358,12 @@
 
     fileInput.addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
-      const statusEl = document.getElementById('uploadStatus');
-
       for (const file of files) {
         if (formData.fotos.length >= 6) break;
-
-        // Show preview immediately
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          addPhotoPreview(ev.target.result, formData.fotos.length);
-        };
-        reader.readAsDataURL(file);
-
-        // Upload to Supabase
-        statusEl.textContent = 'Enviando imagem...';
-        try {
-          const url = await uploadImage(file);
-          if (url) {
-            formData.fotos.push(url);
-            statusEl.textContent = '';
-          } else {
-            // Fallback: use local URL
-            const localUrl = URL.createObjectURL(file);
-            formData.fotos.push(localUrl);
-            statusEl.textContent = 'Salvo localmente (sem conexao)';
-          }
-        } catch (err) {
-          const localUrl = URL.createObjectURL(file);
-          formData.fotos.push(localUrl);
-          statusEl.textContent = 'Erro no upload - salvo localmente';
-        }
+        openCropModal(file);
+        // Processa uma foto por vez (espera o crop)
+        break;
       }
-
-      fileInput.value = '';
     });
 
     function addPhotoPreview(url, index) {
