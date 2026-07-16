@@ -76,24 +76,36 @@ function logout() {
 }
 
 async function loginSupabase(nick, senha) {
-  // Tenta API REST
+  console.log('Tentando login:', nick);
+
+  // PRIORIDADE 1: Verifica localStorage primeiro (usuarios cadastrados localmente)
+  const users = DB.get('users', []);
+  const profiles = DB.get('profiles', []);
+  console.log('Usuarios locais:', users.map(u => u.nick));
+
+  const found = users.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.senha === senha);
+  if (found) {
+    console.log('Usuario local encontrado!');
+    const profile = profiles.find(p => p.id === found.coupleId || p.id === found.profile_id);
+    if (profile) {
+      setCurrentUser(profile);
+      console.log('Login local OK');
+      return true;
+    }
+  }
+
+  // PRIORIDADE 2: Tenta API REST (usuarios do Supabase)
   try {
     const data = await apiGet('users?select=*,profiles(*)&nick=eq.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
     if (data && data.length > 0 && data[0].profiles) {
       const p = data[0].profiles;
       setCurrentUser({ id: p.id, nick: p.nick, nomeDele: p.nome_dele, nomeDela: p.nome_dela, cidade: p.cidade, preferencias: p.preferencias || [], fotos: p.fotos || [], bio: p.bio || '', idadeDele: p.idade_dele || 30, idadeDela: p.idade_dela || 28, online: true });
+      console.log('Login Supabase OK');
       return true;
     }
-  } catch (e) { console.log('Login API falhou'); }
+  } catch (e) { console.log('Login Supabase falhou:', e); }
 
-  // Fallback local
-  const users = DB.get('users', []);
-  const found = users.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.senha === senha);
-  if (found) {
-    const profiles = DB.get('profiles', []);
-    const profile = profiles.find(p => p.id === found.coupleId);
-    if (profile) { setCurrentUser(profile); return true; }
-  }
+  console.log('Login falhou: nick ou senha incorretos');
   return false;
 }
 
