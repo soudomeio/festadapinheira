@@ -215,11 +215,12 @@ async function getProfiles() {
 async function addMatchSupabase(fromId, toId, status) {
   if (sbClient) {
     try {
-      const { data, error } = await sbClient.from('matches').insert([{ from_profile_id: fromId, to_profile_id: toId, status }]).select().single();
-      if (!error && data) return data;
-    } catch (e) { console.log('addMatch Supabase falhou'); }
+      const { data, error } = await sbClient.from('matches').insert([{ from_profile_id: fromId, to_profile_id: toId, status }]).select();
+      if (!error && data && data.length > 0) return data[0];
+      if (error) console.log('Match insert error:', error.message);
+    } catch (e) { console.log('addMatch Supabase falhou:', e); }
   }
-  // Local fallback
+  // Local fallback - sempre funciona
   const matches = DB.get('matches', []);
   const newMatch = { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: status === 'interesse' && Math.random() > 0.3, created_at: new Date().toISOString() };
   matches.push(newMatch);

@@ -173,8 +173,14 @@
       document.getElementById('emptyState').classList.add('hidden');
 
       const p = available[currentIndex];
-      const foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&h=800&fit=crop';
-      document.getElementById('cardBg').style.backgroundImage = `url('${foto}')`;
+      const fallbackFoto = 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&h=800&fit=crop';
+      const foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : fallbackFoto;
+      const cardBg = document.getElementById('cardBg');
+      cardBg.style.backgroundImage = `url('${foto}')`;
+      // Fallback se a imagem falhar (blob URLs expiradas)
+      const testImg = new Image();
+      testImg.onerror = () => { cardBg.style.backgroundImage = `url('${fallbackFoto}')`; };
+      testImg.src = foto;
       document.getElementById('cardName').textContent = p.nick || '---';
       document.getElementById('cardCity').textContent = p.cidade || '---';
       document.getElementById('detailDele').textContent = `${p.nomeDele || '---'}, ${p.idadeDele || '--'} anos`;
@@ -199,25 +205,19 @@
       const profile = available[currentIndex];
       const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
 
-      // Save match to Supabase
-      if (currentUser && sbClient) {
-        try {
-          const result = await addMatchSupabase(currentUser.id, profile.id, statusMap[direction]);
-          if (direction === 'right' && result && result.mutual) {
-            document.getElementById('matchOverlay').classList.add('show');
-          }
-        } catch (e) {
-          // Local fallback
-          const result = { mutual: direction === 'interesse' && Math.random() > 0.3 };
-          if (direction === 'right' && result.mutual) {
-            document.getElementById('matchOverlay').classList.add('show');
-          }
-        }
-      } else {
-        // Guest mode - no match saving
-        if (direction === 'right' && Math.random() > 0.3) {
-          document.getElementById('matchOverlay').classList.add('show');
-        }
+      // Save match
+      let isMutual = false;
+      try {
+        const result = await addMatchSupabase(currentUser ? currentUser.id : 'guest', profile.id, statusMap[direction]);
+        isMutual = result && result.mutual;
+      } catch (e) {
+        // Fallback local
+        isMutual = direction === 'right' && Math.random() > 0.3;
+      }
+
+      // Show match animation
+      if (direction === 'right' && isMutual) {
+        document.getElementById('matchOverlay').classList.add('show');
       }
 
       currentIndex++;
