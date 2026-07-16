@@ -1,5 +1,18 @@
-// ===== FESTA DA PINHEIRA - App JavaScript =====
+// ===== FESTA DA PINHEIRA - App com Supabase =====
 
+const SUPABASE_URL = 'https://zxmddvkjspbapzifrhqh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4bWRkdmtqc3BiYXB6aWZyaHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQxNzA5MTksImV4cCI6MjA5OTc0NjkxOX0.VYhoyzy_AYHTh5qHTrR7mIsmCb9Tz1cMSJvP7O_sI6o';
+
+let supabase;
+
+// Inicializar Supabase
+function initSupabase() {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  }
+}
+
+// ===== LOCAL STORAGE HELPERS =====
 const DB = {
   get(key, def) {
     try { return JSON.parse(localStorage.getItem('fp_' + key)) || def; }
@@ -17,134 +30,235 @@ const PREFERENCES = [
   { id: 'curioso', label: 'Apenas Curioso' },
 ];
 
-// ===== MOCK PROFILES =====
-const MOCK_PROFILES = [
-  { id: '1', nick: 'CasalPinheira', nomeDele: 'Rafael', nomeDela: 'Juliana', cidade: 'São Paulo', preferencias: ['trocas', 'mesmo_ambiente'], fotos: ['https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&h=800&fit=crop'], bio: 'Casal aventureiro procurando novas experiências.', idadeDele: 32, idadeDela: 28, online: true },
-  { id: '2', nick: 'NoiteQuente', nomeDele: 'Bruno', nomeDela: 'Carolina', cidade: 'Rio de Janeiro', preferencias: ['trocas', 'curioso'], fotos: ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=800&fit=crop'], bio: 'Primeira vez em festas. Queremos conhecer pessoas legais.', idadeDele: 29, idadeDela: 26, online: true },
-  { id: '3', nick: 'FogoNaMata', nomeDele: 'Fernando', nomeDela: 'Patrícia', cidade: 'Curitiba', preferencias: ['mesmo_ambiente'], fotos: ['https://images.unsplash.com/photo-1621621667797-e06afc217fb0?w=600&h=800&fit=crop'], bio: 'Casal experiente e discreto.', idadeDele: 35, idadeDela: 31, online: false },
-  { id: '4', nick: 'LuaDeMel', nomeDele: 'Gustavo', nomeDela: 'Amanda', cidade: 'Belo Horizonte', preferencias: ['solteiras', 'curioso'], fotos: ['https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=600&h=800&fit=crop'], bio: 'Sempre em busca de diversão.', idadeDele: 30, idadeDela: 27, online: true },
-  { id: '5', nick: 'Pimenta', nomeDele: 'Diego', nomeDela: 'Fernanda', cidade: 'São Paulo', preferencias: ['trocas', 'mesmo_ambiente', 'curioso'], fotos: ['https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=600&h=800&fit=crop'], bio: 'Adicionando tempero na relação.', idadeDele: 33, idadeDela: 29, online: true },
-  { id: '6', nick: 'EstrelaCadente', nomeDele: 'Lucas', nomeDela: 'Mariana', cidade: 'Porto Alegre', preferencias: ['solteiros'], fotos: ['https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&h=800&fit=crop'], bio: 'Casal liberal e aberto a novas experiências.', idadeDele: 28, idadeDela: 25, online: false },
-];
-
-// ===== INITIALIZE DATA =====
-function initData() {
-  if (!DB.get('profiles')) DB.set('profiles', MOCK_PROFILES);
-  if (!DB.get('messages')) {
-    DB.set('messages', [
-      { id: '1', senderId: 'system', senderNick: 'Admin', content: 'Bem-vindos à Festa da Pinheira! Respeitem uns aos outros e divirtam-se!', timestamp: Date.now() - 3600000, isPrivate: false },
-      { id: '2', senderId: '1', senderNick: 'CasalPinheira', content: 'Oi pessoal! Alguém vai estar na festa sábado?', timestamp: Date.now() - 3000000, isPrivate: false },
-      { id: '3', senderId: '2', senderNick: 'NoiteQuente', content: 'Nós vamos! Primeira vez, estamos animados 😊', timestamp: Date.now() - 2400000, isPrivate: false },
-      { id: '4', senderId: '3', senderNick: 'FogoNaMata', content: 'Vai ser incrível! A festa da Pinheira é sempre top.', timestamp: Date.now() - 1800000, isPrivate: false },
-      { id: '5', senderId: '4', senderNick: 'LuaDeMel', content: 'Alguém de BH indo? Podemos dividir o transporte.', timestamp: Date.now() - 1200000, isPrivate: false },
-    ]);
-  }
-  if (!DB.get('matches')) {
-    DB.set('matches', [
-      { id: 'm1', coupleId: '1', status: 'interesse', timestamp: Date.now() - 86400000, mutual: true },
-      { id: 'm2', coupleId: '2', status: 'interesse', timestamp: Date.now() - 43200000, mutual: true },
-      { id: 'm3', coupleId: '4', status: 'talvez', timestamp: Date.now() - 21600000 },
-    ]);
-  }
-  if (!DB.get('users')) {
-    DB.set('users', [
-      { nick: 'CasalPinheira', senha: '123456', coupleId: '1' },
-      { nick: 'NoiteQuente', senha: '123456', coupleId: '2' },
-    ]);
-  }
+function getPrefLabel(id) {
+  const p = PREFERENCES.find(pref => pref.id === id);
+  return p ? p.label : id;
 }
 
 // ===== AUTH FUNCTIONS =====
 function getCurrentUser() { return DB.get('currentUser', null); }
-
 function setCurrentUser(user) { DB.set('currentUser', user); }
 
 function logout() {
   DB.set('currentUser', null);
+  DB.set('swipeIndex', 0);
   window.location.href = '../index.html';
 }
 
-function login(nick, senha) {
-  const users = DB.get('users', []);
-  const found = users.find(u => u.nick.toLowerCase() === nick.toLowerCase() && u.senha === senha);
-  if (!found) return false;
-  const profiles = DB.get('profiles', []);
-  const profile = profiles.find(p => p.id === found.coupleId);
-  if (profile) {
-    setCurrentUser(profile);
-    return true;
-  }
-  return false;
-}
+// Login com Supabase
+async function loginSupabase(nick, senha) {
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from('users')
+    .select('*, profiles(*)')
+    .eq('nick', nick)
+    .eq('senha', senha)
+    .single();
 
-function register(userData, senha) {
-  const users = DB.get('users', []);
-  if (users.some(u => u.nick.toLowerCase() === userData.nick.toLowerCase())) return false;
+  if (error || !data) return false;
 
-  const profiles = DB.get('profiles', []);
-  const newId = 'u' + Date.now();
-  const newProfile = { ...userData, id: newId, online: true };
+  const profile = data.profiles || {
+    id: data.profile_id,
+    nick: data.nick,
+  };
 
-  profiles.push(newProfile);
-  users.push({ nick: userData.nick, senha, coupleId: newId });
-
-  DB.set('profiles', profiles);
-  DB.set('users', users);
-  setCurrentUser(newProfile);
+  setCurrentUser(profile);
   return true;
 }
 
-function checkNickExists(nick) {
-  const users = DB.get('users', []);
-  return users.some(u => u.nick.toLowerCase() === nick.toLowerCase());
+// Cadastro com Supabase
+async function registerSupabase(userData, senha) {
+  if (!supabase) return false;
+
+  // Verificar se nick existe
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('nick')
+    .eq('nick', userData.nick)
+    .single();
+
+  if (existing) return false;
+
+  // Criar profile
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .insert([{
+      nick: userData.nick,
+      nome_dele: userData.nomeDele,
+      nome_dela: userData.nomeDela,
+      cidade: userData.cidade,
+      preferencias: userData.preferencias,
+      fotos: userData.fotos,
+      bio: userData.bio || '',
+      idade_dele: userData.idadeDele || 30,
+      idade_dela: userData.idadeDela || 28,
+      online: true,
+    }])
+    .select()
+    .single();
+
+  if (profileError || !profile) return false;
+
+  // Criar usuario
+  const { error: userError } = await supabase
+    .from('users')
+    .insert([{
+      nick: userData.nick,
+      senha: senha,
+      profile_id: profile.id,
+    }]);
+
+  if (userError) return false;
+
+  setCurrentUser(profile);
+  return true;
 }
 
-// ===== MATCH FUNCTIONS =====
-function addMatch(coupleId, status) {
-  const matches = DB.get('matches', []);
-  const newMatch = {
-    id: 'm' + Date.now(),
-    coupleId,
-    status,
-    timestamp: Date.now(),
-    mutual: status === 'interesse' && Math.random() > 0.3,
-  };
-  matches.push(newMatch);
-  DB.set('matches', matches);
-  return newMatch;
+// Verificar se nick existe
+async function checkNickExistsSupabase(nick) {
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from('profiles')
+    .select('nick')
+    .eq('nick', nick)
+    .single();
+  return !!data;
 }
 
-function getMatches() { return DB.get('matches', []); }
+// Upload de imagem para Supabase Storage
+async function uploadImage(file) {
+  if (!supabase) return null;
 
-// ===== CHAT FUNCTIONS =====
-function sendMessage(content, receiverId) {
-  const messages = DB.get('messages', []);
-  const user = getCurrentUser();
-  const newMsg = {
-    id: 'msg' + Date.now(),
-    senderId: user ? user.id : 'guest',
-    senderNick: user ? user.nick : 'Convidado',
-    content,
-    timestamp: Date.now(),
-    isPrivate: !!receiverId,
-    receiverId: receiverId || null,
-  };
-  messages.push(newMsg);
-  DB.set('messages', messages);
-  return newMsg;
+  const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+
+  const { data, error } = await supabase.storage
+    .from('fotos')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (error) return null;
+
+  // Retornar URL publica
+  const { data: urlData } = supabase.storage
+    .from('fotos')
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
 }
 
-function getMessages() { return DB.get('messages', []); }
-
-// ===== UTILS =====
-function formatTime(ts) {
-  const d = new Date(ts);
-  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+// ===== PROFILES =====
+async function getProfiles() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return data || [];
 }
 
-function getPrefLabel(id) {
-  const p = PREFERENCES.find(pref => pref.id === id);
-  return p ? p.label : id;
+async function updateProfile(profileId, updates) {
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', profileId);
+  return !error;
+}
+
+// ===== MATCHES =====
+async function addMatchSupabase(fromId, toId, status) {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('matches')
+    .insert([{
+      from_profile_id: fromId,
+      to_profile_id: toId,
+      status: status,
+    }])
+    .select()
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+async function getMatchesSupabase() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('matches')
+    .select('*')
+    .order('created_at', { ascending: false });
+  return data || [];
+}
+
+// ===== MESSAGES =====
+async function sendMessageSupabase(senderId, senderNick, content, isPrivate, receiverId) {
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('messages')
+    .insert([{
+      sender_id: senderId,
+      sender_nick: senderNick,
+      content: content,
+      is_private: isPrivate,
+      receiver_id: receiverId || null,
+    }])
+    .select()
+    .single();
+
+  if (error) return null;
+  return data;
+}
+
+async function getMessagesSupabase() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+async function getGlobalMessages() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('is_private', false)
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+async function getPrivateMessages(userId, otherId) {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('is_private', true)
+    .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${userId})`)
+    .order('created_at', { ascending: true });
+  return data || [];
+}
+
+// ===== REALTIME =====
+function subscribeToMessages(callback) {
+  if (!supabase) return null;
+  return supabase
+    .channel('messages')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, callback)
+    .subscribe();
+}
+
+function subscribeToMatches(callback) {
+  if (!supabase) return null;
+  return supabase
+    .channel('matches')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'matches' }, callback)
+    .subscribe();
 }
 
 // ===== SPLASH SCREEN =====
@@ -171,11 +285,10 @@ function initNav() {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-  initData();
+  initSupabase();
   initSplash();
   initNav();
 
-  // Redirect if not logged in (except login and register pages)
   const page = window.location.pathname.split('/').pop();
   const publicPages = ['', 'index.html', 'cadastro.html'];
   const isPublic = publicPages.includes(page);
@@ -184,10 +297,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = '../index.html';
     return;
   }
-
-  // Show guest badge if not logged in
-  const user = getCurrentUser();
-  if (!user && document.getElementById('guestBadge')) {
-    document.getElementById('guestBadge').classList.remove('hidden');
-  }
 });
+
+// ===== UTILS =====
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}

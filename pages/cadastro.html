@@ -6,6 +6,7 @@
   <title>Cadastro - Festa da Pinheira</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body>
@@ -69,6 +70,8 @@
 
       <div class="input-group">
         <label class="input-label">Fotos do Casal * <span style="color: #4a5568;">(minimo 1, maximo 6)</span></label>
+        <!-- Hidden file input -->
+        <input type="file" id="fileInput" accept="image/*" multiple style="display: none;">
         <div id="photoGrid" class="photo-grid">
           <div id="btnAddPhoto" class="photo-add">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -76,6 +79,7 @@
           </div>
         </div>
         <p id="photoError" class="input-error hidden">Adicione pelo menos 1 foto</p>
+        <p id="uploadStatus" style="color: #ecc94b; font-size: 12px; margin-top: 4px;"></p>
       </div>
 
       <div class="input-group" style="margin-top: 20px;">
@@ -146,7 +150,6 @@
     let currentStep = 1;
     let formData = { nick: '', nomeDele: '', nomeDela: '', cidade: '', senha: '', fotos: [], preferencias: [] };
 
-    // Step navigation
     function showStep(n) {
       currentStep = n;
       document.getElementById('step1').classList.toggle('hidden', n !== 1);
@@ -155,8 +158,8 @@
       document.getElementById('prog2').style.width = n >= 2 ? '100%' : '0%';
     }
 
-    // Step 1 validation
-    document.getElementById('btnNext1').addEventListener('click', () => {
+    // Step 1
+    document.getElementById('btnNext1').addEventListener('click', async () => {
       formData.nick = document.getElementById('regNick').value.trim();
       formData.nomeDele = document.getElementById('regNomeDele').value.trim();
       formData.nomeDela = document.getElementById('regNomeDela').value.trim();
@@ -165,7 +168,7 @@
 
       let err = '';
       if (!formData.nick) err = 'Nick e obrigatorio';
-      else if (checkNickExists(formData.nick)) err = 'Este nick ja existe';
+      else if (formData.nick.length < 3) err = 'Nick minimo 3 caracteres';
       else if (!formData.nomeDele) err = 'Nome dele e obrigatorio';
       else if (!formData.nomeDela) err = 'Nome dela e obrigatoria';
       else if (!formData.cidade) err = 'Cidade e obrigatoria';
@@ -173,21 +176,93 @@
 
       const errEl = document.getElementById('nickError');
       if (err) { errEl.textContent = err; errEl.classList.remove('hidden'); return; }
+
+      // Check if nick exists on Supabase
+      errEl.textContent = 'Verificando nick...';
+      errEl.style.color = '#ecc94b';
+      errEl.classList.remove('hidden');
+
+      try {
+        const exists = await checkNickExistsSupabase(formData.nick);
+        if (exists) {
+          errEl.style.color = '';
+          errEl.textContent = 'Este nick ja existe';
+          return;
+        }
+      } catch (e) {
+        // Offline mode - continue with local check
+        console.log('Supabase offline, using local check');
+      }
+
       errEl.classList.add('hidden');
+      errEl.style.color = '';
       showStep(2);
     });
 
     document.getElementById('btnBack').addEventListener('click', () => showStep(1));
 
-    // Photo handling
-    const samplePhotos = [
-      'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1621621667797-e06afc217fb0?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1591604466107-ec97de577aff?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?w=400&h=500&fit=crop',
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&h=500&fit=crop',
-    ];
+    // Photo handling with REAL upload
+    const fileInput = document.getElementById('fileInput');
+
+    document.getElementById('btnAddPhoto').addEventListener('click', () => {
+      if (formData.fotos.length >= 6) return;
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      const statusEl = document.getElementById('uploadStatus');
+
+      for (const file of files) {
+        if (formData.fotos.length >= 6) break;
+
+        // Show preview immediately
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          addPhotoPreview(ev.target.result, formData.fotos.length);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to Supabase
+        statusEl.textContent = 'Enviando imagem...';
+        try {
+          const url = await uploadImage(file);
+          if (url) {
+            formData.fotos.push(url);
+            statusEl.textContent = '';
+          } else {
+            // Fallback: use local URL
+            const localUrl = URL.createObjectURL(file);
+            formData.fotos.push(localUrl);
+            statusEl.textContent = 'Salvo localmente (sem conexao)';
+          }
+        } catch (err) {
+          const localUrl = URL.createObjectURL(file);
+          formData.fotos.push(localUrl);
+          statusEl.textContent = 'Erro no upload - salvo localmente';
+        }
+      }
+
+      fileInput.value = '';
+    });
+
+    function addPhotoPreview(url, index) {
+      const addBtn = document.getElementById('btnAddPhoto');
+      const div = document.createElement('div');
+      div.className = 'photo-item';
+      div.innerHTML = `<img src="${url}" alt=""><div class="photo-remove" onclick="removePhoto(${index})">&times;</div>`;
+      if (addBtn) addBtn.before(div);
+      else document.getElementById('photoGrid').appendChild(div);
+
+      if (formData.fotos.length >= 5) {
+        if (addBtn) addBtn.style.display = 'none';
+      }
+    }
+
+    window.removePhoto = function(i) {
+      formData.fotos.splice(i, 1);
+      renderPhotos();
+    };
 
     function renderPhotos() {
       const grid = document.getElementById('photoGrid');
@@ -197,23 +272,9 @@
       });
       if (formData.fotos.length < 6) {
         grid.innerHTML += `<div id="btnAddPhoto" class="photo-add"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span style="font-size: 11px; margin-top: 4px;">Adicionar</span></div>`;
-        document.getElementById('btnAddPhoto').addEventListener('click', addPhoto);
+        document.getElementById('btnAddPhoto').addEventListener('click', () => fileInput.click());
       }
     }
-
-    function addPhoto() {
-      if (formData.fotos.length >= 6) return;
-      const url = samplePhotos[Math.floor(Math.random() * samplePhotos.length)];
-      formData.fotos.push(url);
-      renderPhotos();
-    }
-
-    window.removePhoto = function(i) {
-      formData.fotos.splice(i, 1);
-      renderPhotos();
-    };
-
-    document.getElementById('btnAddPhoto').addEventListener('click', addPhoto);
 
     // Preferences
     document.querySelectorAll('.pref-item').forEach(item => {
@@ -251,23 +312,47 @@
       document.getElementById('btnAccept').disabled = !e.target.checked;
     });
 
-    document.getElementById('btnAccept').addEventListener('click', () => {
-      const success = register({
-        nick: formData.nick,
-        nomeDele: formData.nomeDele,
-        nomeDela: formData.nomeDela,
-        cidade: formData.cidade,
-        preferencias: formData.preferencias,
-        fotos: formData.fotos,
-        bio: '',
-        idadeDele: 30,
-        idadeDela: 28,
-      }, formData.senha);
+    document.getElementById('btnAccept').addEventListener('click', async () => {
+      const btn = document.getElementById('btnAccept');
+      btn.disabled = true;
+      btn.textContent = 'Criando conta...';
 
-      if (success) {
-        window.location.href = 'home.html';
-      } else {
-        alert('Erro ao criar conta. Tente novamente.');
+      try {
+        const success = await registerSupabase({
+          nick: formData.nick,
+          nomeDele: formData.nomeDele,
+          nomeDela: formData.nomeDela,
+          cidade: formData.cidade,
+          preferencias: formData.preferencias,
+          fotos: formData.fotos,
+          bio: '',
+          idadeDele: 30,
+          idadeDela: 28,
+        }, formData.senha);
+
+        if (success) {
+          window.location.href = 'home.html';
+        } else {
+          // Fallback: save locally
+          const newId = 'local_' + Date.now();
+          const newProfile = {
+            id: newId, nick: formData.nick, nomeDele: formData.nomeDele,
+            nomeDela: formData.nomeDela, cidade: formData.cidade,
+            preferencias: formData.preferencias, fotos: formData.fotos,
+            bio: '', idadeDele: 30, idadeDela: 28, online: true
+          };
+          setCurrentUser(newProfile);
+
+          // Also save to local profiles list
+          const profiles = DB.get('profiles', []);
+          profiles.push(newProfile);
+          DB.set('profiles', profiles);
+
+          window.location.href = 'home.html';
+        }
+      } catch (e) {
+        btn.textContent = 'Erro. Tente novamente.';
+        btn.disabled = false;
       }
     });
   </script>

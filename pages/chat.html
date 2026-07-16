@@ -6,6 +6,7 @@
   <title>Chat - Festa da Pinheira</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body>
@@ -90,6 +91,22 @@
     const currentUser = getCurrentUser();
     let activeTab = 'global';
     let activePrivateChat = null;
+    let allProfiles = [];
+
+    async function loadProfiles() {
+      try {
+        const data = await getProfiles();
+        if (data && data.length > 0) {
+          allProfiles = data.map(p => ({
+            id: p.id, nick: p.nick, cidade: p.cidade, fotos: p.fotos || [],
+            nomeDele: p.nome_dele, nomeDela: p.nome_dela, online: p.online || false,
+            preferencias: p.preferencias || [],
+          }));
+        }
+      } catch (e) {
+        allProfiles = DB.get('profiles', []);
+      }
+    }
 
     function switchTab(tab) {
       activeTab = tab;
@@ -105,8 +122,19 @@
       else renderPrivateList();
     }
 
-    function renderGlobalMessages() {
-      const msgs = getMessages().filter(m => !m.isPrivate);
+    async function renderGlobalMessages() {
+      let msgs = [];
+      try {
+        msgs = await getGlobalMessages();
+        msgs = msgs.map(m => ({
+          id: m.id, senderId: m.sender_id, senderNick: m.sender_nick,
+          content: m.content, timestamp: new Date(m.created_at).getTime(),
+          isPrivate: m.is_private, receiverId: m.receiver_id,
+        }));
+      } catch (e) {
+        msgs = DB.get('messages', []).filter(m => !m.isPrivate);
+      }
+
       const container = document.getElementById('globalMessages');
       const myId = currentUser ? currentUser.id : 'guest';
       container.innerHTML = '';
@@ -130,9 +158,15 @@
       scrollToBottom('globalChat');
     }
 
-    function renderPrivateList() {
-      const matches = getMatches().filter(m => m.mutual);
-      const profiles = DB.get('profiles', []);
+    async function renderPrivateList() {
+      let matches = [];
+      try {
+        const data = await getMatchesSupabase();
+        matches = data.filter(m => m.mutual);
+      } catch (e) {
+        matches = DB.get('matches', []).filter(m => m.mutual);
+      }
+
       const container = document.getElementById('privateConversations');
 
       if (matches.length === 0) {
@@ -148,27 +182,20 @@
 
       container.innerHTML = '';
       matches.forEach(m => {
-        const p = profiles.find(prof => prof.id === m.coupleId);
-        if (!p) return;
-        const msgs = getMessages().filter(msg =>
-          msg.isPrivate && (msg.senderId === p.id || (msg.senderId === (currentUser ? currentUser.id : '') && msg.receiverId === p.id))
-        );
-        const lastMsg = msgs[msgs.length - 1];
+        const p = allProfiles.find(prof => prof.id === m.to_profile_id || prof.id === m.from_profile_id);
+        if (!p || (currentUser && p.id === currentUser.id)) return;
 
         container.innerHTML += `
           <div onclick="openPrivateChat('${p.id}')" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 4px;" onmouseover="this.style.background='#2d3748'" onmouseout="this.style.background='transparent'">
             <div style="position: relative;">
               <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; background: #2d3748;">
-                <img src="${p.fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${(p.fotos && p.fotos[0]) ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">
               </div>
               ${p.online ? '<div class="online-dot"></div>' : ''}
             </div>
             <div style="flex: 1; min-width: 0;">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-weight: 600;">${p.nick}</span>
-                ${lastMsg ? `<span style="font-size: 11px; color: #4a5568;">${formatTime(lastMsg.timestamp)}</span>` : ''}
-              </div>
-              ${lastMsg ? `<div style="font-size: 13px; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${lastMsg.senderId === (currentUser ? currentUser.id : '') ? 'Voce: ' : ''}${lastMsg.content}</div>` : '<div style="font-size: 13px; color: #4a5568;">Nenhuma mensagem</div>'}
+              <div style="font-weight: 600;">${p.nick || '---'}</div>
+              <div style="font-size: 13px; color: #a0aec0;">Clique para conversar</div>
             </div>
           </div>`;
       });
@@ -176,14 +203,12 @@
 
     window.openPrivateChat = function(coupleId) {
       activePrivateChat = coupleId;
-      const profiles = DB.get('profiles', []);
-      const p = profiles.find(prof => prof.id === coupleId);
-      if (!p) return;
+      const p = allProfiles.find(prof => prof.id === coupleId);
 
       document.getElementById('privateList').classList.add('hidden');
       document.getElementById('privateRoom').classList.remove('hidden');
-      document.getElementById('roomAvatar').innerHTML = `<img src="${p.fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
-      document.getElementById('roomName').textContent = p.nick;
+      document.getElementById('roomAvatar').innerHTML = `<img src="${p && p.fotos && p.fotos[0] ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">`;
+      document.getElementById('roomName').textContent = p ? p.nick : '---';
       renderPrivateMessages();
     };
 
@@ -194,12 +219,22 @@
       renderPrivateList();
     };
 
-    function renderPrivateMessages() {
+    async function renderPrivateMessages() {
       if (!activePrivateChat) return;
       const myId = currentUser ? currentUser.id : 'guest';
-      const msgs = getMessages().filter(msg =>
-        msg.isPrivate && (msg.senderId === activePrivateChat || (msg.senderId === myId && msg.receiverId === activePrivateChat))
-      );
+
+      let msgs = [];
+      try {
+        const data = await getPrivateMessages(myId, activePrivateChat);
+        msgs = data.map(m => ({
+          id: m.id, senderId: m.sender_id, content: m.content,
+          timestamp: new Date(m.created_at).getTime(),
+        }));
+      } catch (e) {
+        msgs = DB.get('messages', []).filter(msg =>
+          msg.isPrivate && (msg.senderId === activePrivateChat || (msg.senderId === myId && msg.receiverId === activePrivateChat))
+        );
+      }
 
       const container = document.getElementById('privateMsgList');
       container.innerHTML = '';
@@ -217,16 +252,27 @@
       scrollToBottom('privateMessages');
     }
 
-    window.sendCurrentMessage = function() {
+    window.sendCurrentMessage = async function() {
       const input = document.getElementById('messageInput');
       const content = input.value.trim();
       if (!content) return;
 
+      const myId = currentUser ? currentUser.id : 'guest';
+      const myNick = currentUser ? currentUser.nick : 'Convidado';
+
       if (activeTab === 'global') {
-        sendMessage(content);
+        try {
+          await sendMessageSupabase(myId, myNick, content, false, null);
+        } catch (e) {
+          // Local fallback
+        }
         renderGlobalMessages();
       } else if (activePrivateChat) {
-        sendMessage(content, activePrivateChat);
+        try {
+          await sendMessageSupabase(myId, myNick, content, true, activePrivateChat);
+        } catch (e) {
+          // Local fallback
+        }
         renderPrivateMessages();
       }
       input.value = '';
@@ -237,14 +283,15 @@
       if (el) el.scrollTop = el.scrollHeight;
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    // Realtime subscription
+    if (supabase) {
+      subscribeToMessages(() => {
+        if (activeTab === 'global') renderGlobalMessages();
+      });
     }
 
     // Init
-    renderGlobalMessages();
+    loadProfiles().then(() => renderGlobalMessages());
   </script>
 </body>
 </html>

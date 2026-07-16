@@ -6,6 +6,7 @@
   <title>Perfil - Festa da Pinheira</title>
   <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body>
@@ -127,37 +128,52 @@
 
   <script src="../assets/js/app.js"></script>
   <script>
-    const currentUser = getCurrentUser();
-    const matches = getMatches();
+    async function loadProfile() {
+      const currentUser = getCurrentUser();
+      if (!currentUser) return;
 
-    if (currentUser) {
-      document.getElementById('profileNick').textContent = currentUser.nick;
-      document.getElementById('profileCity').textContent = currentUser.cidade;
-      document.getElementById('infoDele').textContent = `${currentUser.nomeDele}, ${currentUser.idadeDele} anos`;
-      document.getElementById('infoDela').textContent = `${currentUser.nomeDela}, ${currentUser.idadeDela} anos`;
+      // Load matches from Supabase
+      let matches = [];
+      try {
+        matches = await getMatchesSupabase();
+      } catch (e) {
+        matches = DB.get('matches', []);
+      }
+
+      const myId = currentUser.id;
+      const mutual = matches.filter(m => m.mutual && (m.from_profile_id === myId || m.to_profile_id === myId));
+      const interests = matches.filter(m => m.status === 'interesse' && m.from_profile_id === myId);
+
+      document.getElementById('profileNick').textContent = currentUser.nick || '---';
+      document.getElementById('profileCity').textContent = currentUser.cidade || '---';
+      document.getElementById('infoDele').textContent = `${currentUser.nomeDele || '---'}, ${currentUser.idadeDele || '--'} anos`;
+      document.getElementById('infoDela').textContent = `${currentUser.nomeDela || '---'}, ${currentUser.idadeDela || '--'} anos`;
 
       // Stats
-      document.getElementById('statMatches').textContent = matches.filter(m => m.mutual).length;
-      document.getElementById('statInterests').textContent = matches.filter(m => m.status === 'interesse').length;
+      document.getElementById('statMatches').textContent = mutual.length;
+      document.getElementById('statInterests').textContent = interests.length;
 
       // Avatar & Cover
-      if (currentUser.fotos && currentUser.fotos[0]) {
-        document.getElementById('profileAvatar').innerHTML = `<img src="${currentUser.fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
-        document.getElementById('coverPhoto').style.backgroundImage = `url('${currentUser.fotos[0]}')`;
+      const fotos = currentUser.fotos || [];
+      if (fotos[0]) {
+        document.getElementById('profileAvatar').innerHTML = `<img src="${fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        document.getElementById('coverPhoto').style.backgroundImage = `url('${fotos[0]}')`;
         document.getElementById('coverPhoto').style.backgroundSize = 'cover';
         document.getElementById('coverPhoto').style.backgroundPosition = 'center';
       }
 
       // Preferences
       const prefsEl = document.getElementById('profilePrefs');
-      currentUser.preferencias.forEach(pref => {
+      prefsEl.innerHTML = '';
+      (currentUser.preferencias || []).forEach(pref => {
         const label = getPrefLabel(pref);
         prefsEl.innerHTML += `<span class="tag">${label}</span>`;
       });
 
       // Photos
       const photosEl = document.getElementById('profilePhotos');
-      currentUser.fotos.forEach(url => {
+      photosEl.innerHTML = '';
+      fotos.forEach(url => {
         photosEl.innerHTML += `<div class="photo-item"><img src="${url}" alt=""></div>`;
       });
 
@@ -167,6 +183,8 @@
         document.getElementById('bioSection').classList.remove('hidden');
       }
     }
+
+    loadProfile();
   </script>
 </body>
 </html>

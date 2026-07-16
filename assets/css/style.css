@@ -447,6 +447,11 @@ body {
 
 .match-content { text-align: center; padding: 20px; }
 
+/* Spin */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .heart-pulse {
   animation: heart-pulse 0.8s ease-in-out infinite;
 }

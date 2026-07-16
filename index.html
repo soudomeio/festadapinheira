@@ -6,6 +6,7 @@
   <title>Festa da Pinheira</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body>
@@ -47,7 +48,7 @@
         </button>
 
         <p style="text-align: center; color: #a0aec0; font-size: 14px; margin-top: 20px;">
-          Ainda não tem conta? <a href="pages/cadastro.html" style="color: #ecc94b; font-weight: 500; text-decoration: none;">Cadastre-se</a>
+          Ainda nao tem conta? <a href="pages/cadastro.html" style="color: #ecc94b; font-weight: 500; text-decoration: none;">Cadastre-se</a>
         </p>
 
         <p style="text-align: center; margin-top: 12px;">
@@ -55,7 +56,7 @@
         </p>
 
         <p style="text-align: center; color: #4a5568; font-size: 12px; margin-top: 32px;">
-          Este aplicativo é destinado a maiores de 18 anos.
+          Este aplicativo e destinado a maiores de 18 anos.
         </p>
       </div>
     </div>
@@ -63,10 +64,11 @@
 
   <script src="assets/js/app.js"></script>
   <script>
-    document.getElementById('btnLogin').addEventListener('click', function() {
+    document.getElementById('btnLogin').addEventListener('click', async function() {
       const nick = document.getElementById('loginNick').value.trim();
       const senha = document.getElementById('loginSenha').value;
       const errorEl = document.getElementById('loginError');
+      const btn = this;
 
       if (!nick || !senha) {
         errorEl.textContent = 'Preencha todos os campos';
@@ -74,12 +76,30 @@
         return;
       }
 
-      if (login(nick, senha)) {
-        window.location.href = 'pages/home.html';
-      } else {
-        errorEl.textContent = 'Nick ou senha incorretos';
+      btn.disabled = true;
+      btn.innerHTML = '<div style="width:20px;height:20px;border:2px solid #1a202c;border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite;"></div>';
+      errorEl.classList.add('hidden');
+
+      try {
+        const success = await loginSupabase(nick, senha);
+        if (success) {
+          window.location.href = 'pages/home.html';
+        } else {
+          errorEl.textContent = 'Nick ou senha incorretos';
+          errorEl.classList.remove('hidden');
+        }
+      } catch (e) {
+        errorEl.textContent = 'Erro ao conectar. Tente novamente.';
         errorEl.classList.remove('hidden');
       }
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Entrar';
+    });
+
+    // Enter key
+    document.getElementById('loginSenha').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') document.getElementById('btnLogin').click();
     });
   </script>
 </body>
