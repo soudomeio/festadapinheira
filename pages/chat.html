@@ -69,6 +69,14 @@
       </button>
     </div>
 
+    <!-- Image Preview Modal -->
+    <div id="imgPreviewModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 300; align-items: center; justify-content: center;" onclick="closeImgPreview()">
+      <button style="position: absolute; top: 12px; right: 16px; background: rgba(45,55,72,0.8); border: none; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff; z-index: 10;" onclick="event.stopPropagation(); closeImgPreview()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <img id="imgPreviewSrc" src="" style="max-width: 95%; max-height: 90%; border-radius: 8px; object-fit: contain;" onclick="event.stopPropagation()">
+    </div>
+
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
       <a href="home.html" class="nav-item">
@@ -160,7 +168,7 @@
             <div class="chat-msg ${isMe ? 'own' : ''}">
               ${!isMe ? `<div style="margin-right: 8px; min-width: 0;"><div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : '<div style="max-width: 75%;">'}
               <div class="chat-bubble">
-                ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">` : `<div>${escapeHtml(content)}</div>`}
+                ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="openImgPreview('${escapeHtml(imageUrl)}')">` : `<div>${escapeHtml(content)}</div>`}
                 <div class="chat-time">${formatTime(timestamp)}</div>
               </div>
               ${!isMe ? '</div>' : '</div>'}
@@ -282,7 +290,7 @@
           <div class="chat-msg ${isMe ? 'own' : ''}">
             ${!isMe ? `<div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : ''}
             <div class="chat-bubble">
-              ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">` : `<div>${escapeHtml(content)}</div>`}
+              ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="openImgPreview('${escapeHtml(imageUrl)}')">` : `<div>${escapeHtml(content)}</div>`}
               <div class="chat-time">${formatTime(timestamp)}</div>
             </div>
           </div>`;
@@ -370,6 +378,17 @@
       const el = document.getElementById(elId);
       if (el) el.scrollTop = el.scrollHeight;
     }
+
+    // ===== IMAGE PREVIEW MODAL =====
+    window.openImgPreview = function(url) {
+      document.getElementById('imgPreviewSrc').src = url;
+      document.getElementById('imgPreviewModal').style.display = 'flex';
+    };
+
+    window.closeImgPreview = function() {
+      document.getElementById('imgPreviewModal').style.display = 'none';
+      document.getElementById('imgPreviewSrc').src = '';
+    };
 
     // Atualizar mensagens automaticamente a cada 3 segundos
     setInterval(() => {
