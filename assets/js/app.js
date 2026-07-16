@@ -83,13 +83,7 @@ const MOCK_PROFILES = [
   { id: '6', nick: 'EstrelaCadente', nomeDele: 'Lucas', nomeDela: 'Mariana', cidade: 'Porto Alegre', preferencias: ['solteiros'], fotos: ['https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600&h=800&fit=crop'], bio: 'Casal liberal e aberto a novas experiencias.', idadeDele: 28, idadeDela: 25, online: false },
 ];
 
-const MOCK_MESSAGES = [
-  { id: '1', senderId: 'system', senderNick: 'Admin', content: 'Bem-vindos a Festa da Pinheira! Respeitem uns aos outros e divirtam-se!', timestamp: Date.now() - 3600000, isPrivate: false },
-  { id: '2', senderId: '1', senderNick: 'CasalPinheira', content: 'Oi pessoal! Alguem vai estar na festa sabado?', timestamp: Date.now() - 3000000, isPrivate: false },
-  { id: '3', senderId: '2', senderNick: 'NoiteQuente', content: 'Nos vamos! Primeira vez, estamos animados :)', timestamp: Date.now() - 2400000, isPrivate: false },
-  { id: '4', senderId: '3', senderNick: 'FogoNaMata', content: 'Vai ser incrivel! A festa da Pinheira e sempre top.', timestamp: Date.now() - 1800000, isPrivate: false },
-  { id: '5', senderId: '4', senderNick: 'LuaDeMel', content: 'Alguem de BH indo? Podemos dividir o transporte.', timestamp: Date.now() - 1200000, isPrivate: false },
-];
+const MOCK_MESSAGES = [];
 
 // ===== AUTH =====
 function getCurrentUser() { return SESSION.getUser(); }
@@ -102,7 +96,7 @@ function logout() {
 
 async function loginSupabase(nick, senha) {
   try {
-    const data = await apiGet('users?select=*,profiles!users_profile_id_fkey(*)&nick=eq.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
+    const data = await apiGet('users?select=*,profiles!users_profile_id_fkey(*)&nick=ilike.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
     if (data && data.length > 0 && data[0].profiles) {
       const p = data[0].profiles;
       const user = { id: p.id, nick: p.nick, nomeDele: p.nome_dele, nomeDela: p.nome_dela, cidade: p.cidade, preferencias: p.preferencias || [], fotos: p.fotos || [], bio: p.bio || '', idadeDele: p.idade_dele || 30, idadeDela: p.idade_dela || 28, online: true };
@@ -225,11 +219,15 @@ async function sendMessageSupabase(senderId, senderNick, content, isPrivate, rec
   return null;
 }
 
+const MOCK_NICKS = ['CasalPinheira', 'NoiteQuente', 'FogoNaMata', 'LuaDeMel', 'Pimenta', 'EstrelaCadente'];
+
 async function getGlobalMessages() {
   try {
     const data = await apiGet('messages?select=*&is_private=eq.false&order=created_at.asc');
     if (data && data.length > 0) {
-      return data.map(m => ({ id: m.id, senderId: m.sender_id, senderNick: m.sender_nick, content: m.content, timestamp: new Date(m.created_at).getTime(), isPrivate: m.is_private, receiverId: m.receiver_id }));
+      return data
+        .filter(m => !MOCK_NICKS.includes(m.sender_nick))
+        .map(m => ({ id: m.id, senderId: m.sender_id, senderNick: m.sender_nick, content: m.content, timestamp: new Date(m.created_at).getTime(), isPrivate: m.is_private, receiverId: m.receiver_id }));
     }
   } catch (e) { console.log('getGlobalMessages erro:', e.message); }
   return MOCK_MESSAGES;
