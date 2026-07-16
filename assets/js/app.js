@@ -32,6 +32,15 @@ async function apiPatch(table, query, body) {
   return res.json();
 }
 
+async function apiDelete(table, query) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, {
+    method: 'DELETE',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(err); }
+  return true;
+}
+
 // ===== SESSION =====
 const SESSION = {
   getUser() {
