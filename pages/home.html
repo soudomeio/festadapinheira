@@ -117,10 +117,18 @@
 
     // Load profiles from Supabase
     let allProfiles = [];
-    let currentIndex = DB.get('swipeIndex', 0);
+    let myMatches = [];
+    let currentIndex = 0;
     const myId = currentUser ? currentUser.id : 'guest';
 
     async function loadProfiles() {
+      // Carrega meus matches primeiro
+      try {
+        const matchData = await getMatchesSupabase();
+        myMatches = matchData || [];
+        console.log('Meus matches:', myMatches.length);
+      } catch (e) { console.log('Erro carregando matches'); }
+
       // Try Supabase first
       try {
         const data = await getProfiles();
@@ -152,11 +160,21 @@
         }
       });
 
+      currentIndex = 0;
       showProfile();
     }
 
     function getAvailableProfiles() {
-      return allProfiles.filter(p => p.id !== myId);
+      // Filtra: proprio perfil + perfis que ja dei match
+      return allProfiles.filter(p => {
+        if (p.id === myId) return false;
+        // Verifica se ja dei match neste perfil
+        const jaDeuMatch = myMatches.some(m =>
+          (m.from_profile_id === myId && m.to_profile_id === p.id) ||
+          (m.to_profile_id === myId && m.from_profile_id === p.id)
+        );
+        return !jaDeuMatch;
+      });
     }
 
     function showProfile() {

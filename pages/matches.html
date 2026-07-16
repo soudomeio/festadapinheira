@@ -99,17 +99,26 @@
       const currentUser = getCurrentUser();
       const myId = currentUser ? currentUser.id : '';
 
-      const mutual = matches.filter(m => m.mutual && (m.from_profile_id === myId || m.to_profile_id === myId));
-      const interested = matches.filter(m => m.status === 'interesse' && m.from_profile_id === myId && !m.mutual);
-      const maybe = matches.filter(m => m.status === 'talvez' && m.from_profile_id === myId);
+      // DEDUPLICAR: pega o OUTRO perfil de cada match, sem repetir
+      const seenIds = new Set();
+      const uniqueMatches = [];
 
-      document.getElementById('countMutual').textContent = mutual.length;
-      document.getElementById('countInterest').textContent = interested.length;
-      document.getElementById('countMaybe').textContent = maybe.length;
+      matches.forEach(m => {
+        if (!m.mutual) return; // so matches mutuos
+        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
+        if (otherId === myId) return; // nao mostra si mesmo
+        if (seenIds.has(otherId)) return; // ja mostrou
+        seenIds.add(otherId);
+        uniqueMatches.push({ ...m, otherId });
+      });
 
-      renderList('listMutual', mutual, true);
-      renderList('listInterest', interested, false);
-      renderList('listMaybe', maybe, false, true);
+      document.getElementById('countMutual').textContent = uniqueMatches.length;
+      document.getElementById('countInterest').textContent = 0;
+      document.getElementById('countMaybe').textContent = 0;
+
+      renderList('listMutual', uniqueMatches, true);
+      renderList('listInterest', [], false);
+      renderList('listMaybe', [], false, true);
     }
 
     function renderList(elId, matches, showChat, isMaybe) {
@@ -121,7 +130,7 @@
 
       el.innerHTML = '';
       matches.forEach(m => {
-        const otherId = m.from_profile_id === getCurrentUser()?.id ? m.to_profile_id : m.from_profile_id;
+        const otherId = m.otherId || (m.from_profile_id === getCurrentUser()?.id ? m.to_profile_id : m.from_profile_id);
         const p = allProfiles.find(prof => prof.id === otherId);
         if (!p) return;
 
@@ -131,7 +140,7 @@
           <div class="match-card" style="${isMaybe ? 'opacity: 0.6;' : ''}">
             <div style="position: relative;">
               <div class="match-avatar">
-                <img src="${foto}" alt="">
+                <img src="${foto}" alt="" onerror="this.style.display='none'">
               </div>
               ${showChat ? '<div style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; background: #f56565; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>' : ''}
             </div>

@@ -187,14 +187,22 @@
       }
 
       container.innerHTML = '';
-      const shownIds = new Set(); // evita duplicados
+      const shownIds = new Set();
+      const myId = currentUser ? currentUser.id : '';
 
+      // Agrupa por casal - so mostra um por par
+      const coupleMap = {};
       matches.forEach(m => {
-        // Pega o OUTRO perfil do match (nao o usuario atual)
-        const myId = currentUser ? currentUser.id : '';
-        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
+        const a = m.from_profile_id;
+        const b = m.to_profile_id;
+        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+        if (!coupleMap[key]) coupleMap[key] = m;
+      });
 
-        if (shownIds.has(otherId)) return; // ja mostrou
+      Object.values(coupleMap).forEach(m => {
+        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
+        if (otherId === myId) return;
+        if (shownIds.has(otherId)) return;
         shownIds.add(otherId);
 
         const p = allProfiles.find(prof => prof.id === otherId);
