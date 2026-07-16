@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Chat - Festa da Pinheira</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -126,12 +127,8 @@
       let msgs = [];
       try {
         msgs = await getGlobalMessages();
-        msgs = msgs.map(m => ({
-          id: m.id, senderId: m.sender_id, senderNick: m.sender_nick,
-          content: m.content, timestamp: new Date(m.created_at).getTime(),
-          isPrivate: m.is_private, receiverId: m.receiver_id,
-        }));
       } catch (e) {
+        console.log('Erro carregando mensagens:', e);
         msgs = DB.get('messages', []).filter(m => !m.isPrivate);
       }
 
@@ -139,17 +136,27 @@
       const myId = currentUser ? currentUser.id : 'guest';
       container.innerHTML = '';
 
+      if (!msgs || msgs.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#4a5568;padding:40px;">Nenhuma mensagem ainda. Seja o primeiro!</div>';
+        return;
+      }
+
       msgs.forEach(msg => {
-        if (msg.senderId === 'system') {
-          container.innerHTML += `<div class="chat-system"><span>${msg.content}</span></div>`;
+        const senderId = msg.senderId || msg.sender_id || 'unknown';
+        const senderNick = msg.senderNick || msg.sender_nick || 'Usuario';
+        const content = msg.content || '';
+        const timestamp = msg.timestamp || (msg.created_at ? new Date(msg.created_at).getTime() : Date.now());
+
+        if (senderId === 'system') {
+          container.innerHTML += `<div class="chat-system"><span>${content}</span></div>`;
         } else {
-          const isMe = msg.senderId === myId;
+          const isMe = senderId === myId;
           container.innerHTML += `
             <div class="chat-msg ${isMe ? 'own' : ''}">
-              ${!isMe ? `<div style="margin-right: 8px; min-width: 0;"><div style="font-size: 11px; color: #a0aec0; margin-bottom: 2px;">${msg.senderNick}</div>` : '<div style="max-width: 75%;">'}
+              ${!isMe ? `<div style="margin-right: 8px; min-width: 0;"><div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : '<div style="max-width: 75%;">'}
               <div class="chat-bubble">
-                <div>${escapeHtml(msg.content)}</div>
-                <div class="chat-time">${formatTime(msg.timestamp)}</div>
+                <div>${escapeHtml(content)}</div>
+                <div class="chat-time">${formatTime(timestamp)}</div>
               </div>
               ${!isMe ? '</div>' : '</div>'}
             </div>`;
@@ -225,11 +232,7 @@
 
       let msgs = [];
       try {
-        const data = await getPrivateMessages(myId, activePrivateChat);
-        msgs = data.map(m => ({
-          id: m.id, senderId: m.sender_id, content: m.content,
-          timestamp: new Date(m.created_at).getTime(),
-        }));
+        msgs = await getPrivateMessages(myId, activePrivateChat);
       } catch (e) {
         msgs = DB.get('messages', []).filter(msg =>
           msg.isPrivate && (msg.senderId === activePrivateChat || (msg.senderId === myId && msg.receiverId === activePrivateChat))
@@ -239,13 +242,24 @@
       const container = document.getElementById('privateMsgList');
       container.innerHTML = '';
 
+      if (!msgs || msgs.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:#4a5568;padding:20px;">Nenhuma mensagem ainda. Diga oi!</div>';
+        return;
+      }
+
       msgs.forEach(msg => {
-        const isMe = msg.senderId === myId;
+        const senderId = msg.senderId || msg.sender_id || 'unknown';
+        const senderNick = msg.senderNick || msg.sender_nick || 'Usuario';
+        const content = msg.content || '';
+        const timestamp = msg.timestamp || (msg.created_at ? new Date(msg.created_at).getTime() : Date.now());
+        const isMe = senderId === myId;
+
         container.innerHTML += `
           <div class="chat-msg ${isMe ? 'own' : ''}">
+            ${!isMe ? `<div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : ''}
             <div class="chat-bubble">
-              <div>${escapeHtml(msg.content)}</div>
-              <div class="chat-time">${formatTime(msg.timestamp)}</div>
+              <div>${escapeHtml(content)}</div>
+              <div class="chat-time">${formatTime(timestamp)}</div>
             </div>
           </div>`;
       });
