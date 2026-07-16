@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Perfil - Festa da Pinheira</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Guest Badge -->
+    <div id="guestBadge" class="guest-badge hidden">CONVIDADO</div>
+
+    <div style="overflow-y: auto; height: calc(100vh - 64px); padding-bottom: 80px;">
+      <!-- Cover Photo -->
+      <div id="coverPhoto" style="height: 180px; background: linear-gradient(135deg, #2d3748, #1a202c); position: relative;">
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, #1a202c, transparent);"></div>
+      </div>
+
+      <!-- Profile Info -->
+      <div style="padding: 0 20px; margin-top: -50px; position: relative; z-index: 10;">
+        <div style="display: flex; align-items: flex-end; gap: 16px; margin-bottom: 20px;">
+          <div id="profileAvatar" style="width: 100px; height: 100px; border-radius: 20px; overflow: hidden; border: 4px solid #1a202c; background: #2d3748; flex-shrink: 0;">
+            <svg width="100" height="100" viewBox="0 0 24 24" fill="#4a5568" style="padding: 20px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div style="padding-bottom: 8px;">
+            <h1 id="profileNick" style="font-size: 24px; font-weight: 700;">--</h1>
+            <div style="display: flex; align-items: center; gap: 4px; color: #a0aec0; font-size: 14px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span id="profileCity">--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+          <div style="flex: 1; background: #2d3748; border-radius: 16px; padding: 14px; text-align: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f56565" stroke-width="2" style="margin: 0 auto 6px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <div id="statMatches" style="font-size: 20px; font-weight: 700;">0</div>
+            <div style="font-size: 11px; color: #a0aec0;">Matches</div>
+          </div>
+          <div style="flex: 1; background: #2d3748; border-radius: 16px; padding: 14px; text-align: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#48bb78" stroke-width="2" style="margin: 0 auto 6px;"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            <div id="statInterests" style="font-size: 20px; font-weight: 700;">0</div>
+            <div style="font-size: 11px; color: #a0aec0;">Interesses</div>
+          </div>
+          <div style="flex: 1; background: #2d3748; border-radius: 16px; padding: 14px; text-align: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ecc94b" stroke-width="2" style="margin: 0 auto 6px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            <div style="font-size: 20px; font-weight: 700; color: #48bb78;">On</div>
+            <div style="font-size: 11px; color: #a0aec0;">Status</div>
+          </div>
+        </div>
+
+        <!-- Couple Info -->
+        <div style="background: #2d3748; border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">O Casal</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div>
+              <div style="font-size: 11px; color: #a0aec0;">Ele</div>
+              <div id="infoDele" style="font-size: 14px; font-weight: 500;">--</div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #a0aec0;">Ela</div>
+              <div id="infoDela" style="font-size: 14px; font-weight: 500;">--</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preferences -->
+        <div style="background: #2d3748; border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Preferencias</h3>
+          <div id="profilePrefs" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+        </div>
+
+        <!-- Photos -->
+        <div style="background: #2d3748; border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px;">Fotos</h3>
+          <div id="profilePhotos" class="photo-grid"></div>
+        </div>
+
+        <!-- Bio -->
+        <div id="bioSection" class="hidden" style="background: #2d3748; border-radius: 16px; padding: 16px; margin-bottom: 16px;">
+          <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 8px;">Sobre</h3>
+          <p id="profileBio" style="color: #a0aec0; font-size: 14px;"></p>
+        </div>
+
+        <!-- Menu -->
+        <div style="margin-bottom: 24px;">
+          <a href="editar-perfil.html" style="display: flex; align-items: center; gap: 12px; background: #2d3748; border-radius: 16px; padding: 16px; margin-bottom: 8px; text-decoration: none; color: #fff;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#a0aec0" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            <span style="flex: 1;">Editar Perfil</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </a>
+
+          <button onclick="logout()" style="display: flex; align-items: center; gap: 12px; background: rgba(245,101,101,0.1); border-radius: 16px; padding: 16px; width: 100%; border: none; cursor: pointer; color: #f56565; font-size: 16px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span style="flex: 1; text-align: left;">Sair da Conta</span>
+          </button>
+        </div>
+
+        <p style="text-align: center; color: #4a5568; font-size: 12px; padding-bottom: 20px;">Festa da Pinheira v1.0</p>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+      <a href="home.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Inicio
+      </a>
+      <a href="chat.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        Chat
+      </a>
+      <a href="matches.html" class="nav-item">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Matches
+      </a>
+      <a href="perfil.html" class="nav-item active">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Perfil
+      </a>
+    </nav>
+  </div>
+
+  <script src="../assets/js/app.js"></script>
+  <script>
+    async function loadProfile() {
+      const currentUser = getCurrentUser();
+      if (!currentUser) return;
+
+      // Load matches from Supabase
+      let matches = [];
+      try {
+        matches = await getMatchesSupabase();
+      } catch (e) {
+        matches = DB.get('matches', []);
+      }
+
+      const myId = currentUser.id;
+      const mutual = matches.filter(m => m.mutual && (m.from_profile_id === myId || m.to_profile_id === myId));
+      const interests = matches.filter(m => m.status === 'interesse' && m.from_profile_id === myId);
+
+      document.getElementById('profileNick').textContent = currentUser.nick || '---';
+      document.getElementById('profileCity').textContent = currentUser.cidade || '---';
+      document.getElementById('infoDele').textContent = `${currentUser.nomeDele || '---'}, ${currentUser.idadeDele || '--'} anos`;
+      document.getElementById('infoDela').textContent = `${currentUser.nomeDela || '---'}, ${currentUser.idadeDela || '--'} anos`;
+
+      // Stats
+      document.getElementById('statMatches').textContent = mutual.length;
+      document.getElementById('statInterests').textContent = interests.length;
+
+      // Avatar & Cover
+      const fotos = currentUser.fotos || [];
+      if (fotos[0]) {
+        document.getElementById('profileAvatar').innerHTML = `<img src="${fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        document.getElementById('coverPhoto').style.backgroundImage = `url('${fotos[0]}')`;
+        document.getElementById('coverPhoto').style.backgroundSize = 'cover';
+        document.getElementById('coverPhoto').style.backgroundPosition = 'center';
+      }
+
+      // Preferences
+      const prefsEl = document.getElementById('profilePrefs');
+      prefsEl.innerHTML = '';
+      (currentUser.preferencias || []).forEach(pref => {
+        const label = getPrefLabel(pref);
+        prefsEl.innerHTML += `<span class="tag">${label}</span>`;
+      });
+
+      // Photos
+      const photosEl = document.getElementById('profilePhotos');
+      photosEl.innerHTML = '';
+      fotos.forEach(url => {
+        photosEl.innerHTML += `<div class="photo-item"><img src="${url}" alt=""></div>`;
+      });
+
+      // Bio
+      if (currentUser.bio) {
+        document.getElementById('profileBio').textContent = currentUser.bio;
+        document.getElementById('bioSection').classList.remove('hidden');
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

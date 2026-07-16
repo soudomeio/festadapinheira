@@ -349,12 +349,12 @@
       }
     }
 
-    // ===== SWIPE (fora de showProfile para evitar conflito de const) =====
+    // ===== SWIPE =====
     async function swipe(direction) {
-      const swipeAvail = getAvailableProfiles();
-      if (currentIndex >= swipeAvail.length) return;
+      const available = getAvailableProfiles();
+      if (currentIndex >= available.length) return;
 
-      const p = swipeAvail[currentIndex];
+      const p = available[currentIndex];
       const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
       const acao = statusMap[direction];
       const myId = getMyId();
@@ -385,16 +385,14 @@
       }
 
       currentIndex++;
-      const afterAvail = getAvailableProfiles();
-      document.getElementById('perfisRestantes').textContent = currentIndex < afterAvail.length ? `${currentIndex + 1} de ${afterAvail.length}` : '0';
+      const avail = getAvailableProfiles();
+      document.getElementById('perfisRestantes').textContent = currentIndex < avail.length ? `${currentIndex + 1} de ${avail.length}` : '0';
       showProfile();
     }
 
     window.closeMatch = function() {
       document.getElementById('matchOverlay').classList.remove('show');
       currentIndex++;
-      const cmAvail = getAvailableProfiles();
-      document.getElementById('perfisRestantes').textContent = currentIndex < cmAvail.length ? `${currentIndex + 1} de ${cmAvail.length}` : '0';
       showProfile();
     };
 
