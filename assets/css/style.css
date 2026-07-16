@@ -416,6 +416,23 @@ body {
 
 .chat-input:focus { border-color: #ecc94b; }
 
+.chat-attach {
+  width: 42px;
+  height: 42px;
+  background: none;
+  border: none;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #a0aec0;
+  flex-shrink: 0;
+  transition: color 0.2s;
+}
+
+.chat-attach:hover { color: #ecc94b; }
+
 .chat-send {
   width: 42px;
   height: 42px;
@@ -427,6 +444,7 @@ body {
   justify-content: center;
   cursor: pointer;
   color: #1a202c;
+  flex-shrink: 0;
 }
 
 /* ===== Match Overlay ===== */

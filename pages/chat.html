@@ -59,6 +59,10 @@
 
     <!-- Chat Input -->
     <div id="chatInputArea" class="chat-input-area">
+      <input type="file" id="chatFileInput" accept="image/*" style="display: none;">
+      <button class="chat-attach" onclick="document.getElementById('chatFileInput').click()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </button>
       <input type="text" id="messageInput" class="chat-input" placeholder="Digite uma mensagem..." onkeypress="if(event.key==='Enter')sendCurrentMessage()">
       <button onclick="sendCurrentMessage()" class="chat-send">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -145,6 +149,8 @@
         const senderNick = msg.senderNick || msg.sender_nick || 'Usuario';
         const content = msg.content || '';
         const timestamp = msg.timestamp || (msg.created_at ? new Date(msg.created_at).getTime() : Date.now());
+        const isImage = content.startsWith('[IMG]');
+        const imageUrl = isImage ? content.substring(5) : '';
 
         if (senderId === 'system') {
           container.innerHTML += `<div class="chat-system"><span>${content}</span></div>`;
@@ -154,7 +160,7 @@
             <div class="chat-msg ${isMe ? 'own' : ''}">
               ${!isMe ? `<div style="margin-right: 8px; min-width: 0;"><div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : '<div style="max-width: 75%;">'}
               <div class="chat-bubble">
-                <div>${escapeHtml(content)}</div>
+                ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">` : `<div>${escapeHtml(content)}</div>`}
                 <div class="chat-time">${formatTime(timestamp)}</div>
               </div>
               ${!isMe ? '</div>' : '</div>'}
@@ -269,12 +275,14 @@
         const content = msg.content || '';
         const timestamp = msg.timestamp || (msg.created_at ? new Date(msg.created_at).getTime() : Date.now());
         const isMe = senderId === myId;
+        const isImage = content.startsWith('[IMG]');
+        const imageUrl = isImage ? content.substring(5) : '';
 
         container.innerHTML += `
           <div class="chat-msg ${isMe ? 'own' : ''}">
             ${!isMe ? `<div style="font-size: 11px; color: #ecc94b; margin-bottom: 2px; font-weight: 600;">${senderNick}</div>` : ''}
             <div class="chat-bubble">
-              <div>${escapeHtml(content)}</div>
+              ${isImage ? `<img src="${escapeHtml(imageUrl)}" style="max-width: 200px; max-height: 250px; border-radius: 8px; cursor: pointer; display: block;" onclick="window.open('${escapeHtml(imageUrl)}', '_blank')">` : `<div>${escapeHtml(content)}</div>`}
               <div class="chat-time">${formatTime(timestamp)}</div>
             </div>
           </div>`;
@@ -293,20 +301,71 @@
       if (activeTab === 'global') {
         try {
           await sendMessageSupabase(myId, myNick, content, false, null);
-        } catch (e) {
-          // Local fallback
-        }
+        } catch (e) { /* fallback */ }
         renderGlobalMessages();
       } else if (activePrivateChat) {
         try {
           await sendMessageSupabase(myId, myNick, content, true, activePrivateChat);
-        } catch (e) {
-          // Local fallback
-        }
+        } catch (e) { /* fallback */ }
         renderPrivateMessages();
       }
       input.value = '';
     };
+
+    // ===== ENVIAR FOTO =====
+    const SUPABASE_URL = 'https://zxmddvkjspbapzifrhqh.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4bWRkdmtqc3BiYXB6aWZyaHFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3MDE0MDAsImV4cCI6MjA2ODI3NzQwMH0.TtM-ClxuiwEQG_aHbOEHjFmQGqFDWPI0fHq0qMQE3K4';
+    const chatFileInput = document.getElementById('chatFileInput');
+
+    chatFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      chatFileInput.value = '';
+
+      const myId = currentUser ? currentUser.id : 'guest';
+      const myNick = currentUser ? currentUser.nick : 'Convidado';
+      if (!currentUser) { alert('Faca login para enviar fotos'); return; }
+
+      // Upload via Edge Function photos
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', myId);
+
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/photos`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          body: formData,
+        });
+
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+
+        if (data.success && data.url) {
+          await enviarFotoMsg('[IMG]' + data.url, myId, myNick);
+        } else {
+          throw new Error('No URL returned');
+        }
+      } catch (err) {
+        console.log('Erro upload foto:', err);
+        // Fallback: base64
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
+          await enviarFotoMsg('[IMG]' + ev.target.result, myId, myNick);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    async function enviarFotoMsg(content, myId, myNick) {
+      if (activeTab === 'global') {
+        try { await sendMessageSupabase(myId, myNick, content, false, null); } catch (e) { /* */ }
+        renderGlobalMessages();
+      } else if (activePrivateChat) {
+        try { await sendMessageSupabase(myId, myNick, content, true, activePrivateChat); } catch (e) { /* */ }
+        renderPrivateMessages();
+      }
+    }
 
     function scrollToBottom(elId) {
       const el = document.getElementById(elId);
