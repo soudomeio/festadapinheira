@@ -41,6 +41,15 @@ const SESSION = {
   clear() { sessionStorage.removeItem('fp_session_user'); },
 };
 
+// ===== LOCAL STORAGE (fallback e cache) =====
+const DB = {
+  get(key, def) {
+    try { return JSON.parse(localStorage.getItem('fp_' + key)) || def; }
+    catch { return def; }
+  },
+  set(key, val) { localStorage.setItem('fp_' + key, JSON.stringify(val)); },
+};
+
 // ===== PREFERENCES =====
 const PREFERENCES = [
   { id: 'trocas', label: 'Trocas de Casais' },
@@ -84,8 +93,8 @@ function logout() {
 
 async function loginSupabase(nick, senha) {
   try {
-    // Busca no Supabase
-    const data = await apiGet('users?select=*,profiles(*)&nick=eq.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
+    // Busca no Supabase (especifica a relacao profile_id para evitar ambiguidade)
+    const data = await apiGet('users?select=*,profiles!users_profile_id_fkey(*)&nick=eq.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
     if (data && data.length > 0 && data[0].profiles) {
       const p = data[0].profiles;
       const user = { id: p.id, nick: p.nick, nomeDele: p.nome_dele, nomeDela: p.nome_dela, cidade: p.cidade, preferencias: p.preferencias || [], fotos: p.fotos || [], bio: p.bio || '', idadeDele: p.idade_dele || 30, idadeDela: p.idade_dela || 28, online: true };
