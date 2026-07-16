@@ -32,7 +32,7 @@ async function apiPatch(table, query, body) {
   return res.json();
 }
 
-// ===== SESSION (apenas para manter login na aba) =====
+// ===== SESSION =====
 const SESSION = {
   getUser() {
     try { return JSON.parse(sessionStorage.getItem('fp_session_user')); } catch { return null; }
@@ -41,7 +41,7 @@ const SESSION = {
   clear() { sessionStorage.removeItem('fp_session_user'); },
 };
 
-// ===== LOCAL STORAGE (fallback e cache) =====
+// ===== LOCAL STORAGE (notificacoes e cache) =====
 const DB = {
   get(key, def) {
     try { return JSON.parse(localStorage.getItem('fp_' + key)) || def; }
@@ -64,7 +64,7 @@ function getPrefLabel(id) {
   return p ? p.label : id;
 }
 
-// ===== MOCK DATA (para quando o Supabase estiver offline) =====
+// ===== MOCK DATA =====
 const MOCK_PROFILES = [
   { id: '1', nick: 'CasalPinheira', nomeDele: 'Rafael', nomeDela: 'Juliana', cidade: 'São Paulo', preferencias: ['trocas', 'mesmo_ambiente'], fotos: ['https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&h=800&fit=crop'], bio: 'Casal aventureiro procurando novas experiencias.', idadeDele: 32, idadeDela: 28, online: true },
   { id: '2', nick: 'NoiteQuente', nomeDele: 'Bruno', nomeDela: 'Carolina', cidade: 'Rio de Janeiro', preferencias: ['trocas', 'curioso'], fotos: ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=600&h=800&fit=crop'], bio: 'Primeira vez em festas. Queremos conhecer pessoas legais.', idadeDele: 29, idadeDela: 26, online: true },
@@ -93,7 +93,6 @@ function logout() {
 
 async function loginSupabase(nick, senha) {
   try {
-    // Busca no Supabase (especifica a relacao profile_id para evitar ambiguidade)
     const data = await apiGet('users?select=*,profiles!users_profile_id_fkey(*)&nick=eq.' + encodeURIComponent(nick) + '&senha=eq.' + encodeURIComponent(senha));
     if (data && data.length > 0 && data[0].profiles) {
       const p = data[0].profiles;
@@ -101,41 +100,27 @@ async function loginSupabase(nick, senha) {
       setCurrentUser(user);
       return true;
     }
-  } catch (e) {
-    console.log('Erro login Supabase:', e.message);
-  }
+  } catch (e) { console.log('Erro login:', e.message); }
   return false;
 }
 
 async function registerSupabase(userData, senha) {
   try {
-    // Verifica se nick existe
     const existing = await apiGet('profiles?nick=eq.' + encodeURIComponent(userData.nick) + '&select=nick');
     if (existing && existing.length > 0) return false;
 
-    // Cria profile
     const profiles = await apiPost('profiles', {
-      nick: userData.nick,
-      nome_dele: userData.nomeDele,
-      nome_dela: userData.nomeDela,
-      cidade: userData.cidade,
-      preferencias: userData.preferencias,
-      fotos: userData.fotos,
-      bio: userData.bio || '',
-      idade_dele: userData.idadeDele || 30,
-      idade_dela: userData.idadeDela || 28,
-      online: true,
+      nick: userData.nick, nome_dele: userData.nomeDele, nome_dela: userData.nomeDela,
+      cidade: userData.cidade, preferencias: userData.preferencias, fotos: userData.fotos,
+      bio: userData.bio || '', idade_dele: userData.idadeDele || 30, idade_dela: userData.idadeDela || 28, online: true,
     });
 
     if (profiles && profiles.length > 0) {
-      // Cria usuario
       await apiPost('users', { nick: userData.nick, senha, profile_id: profiles[0].id });
       setCurrentUser({ ...userData, id: profiles[0].id, online: true });
       return true;
     }
-  } catch (e) {
-    console.log('Erro cadastro Supabase:', e.message);
-  }
+  } catch (e) { console.log('Erro cadastro:', e.message); }
   return false;
 }
 
@@ -151,7 +136,6 @@ async function uploadImage(file) {
   const user = getCurrentUser();
   const userId = user ? user.id : 'anon';
 
-  // Metodo 1: Edge Function
   try {
     const formData = new FormData();
     formData.append('file', file);
@@ -165,7 +149,6 @@ async function uploadImage(file) {
     if (result.success && result.url) return result.url;
   } catch (e) { console.log('Edge Function falhou'); }
 
-  // Metodo 2: Upload direto no Storage
   try {
     const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${file.name.split('.').pop()}`;
     const res = await fetch(`${SUPABASE_URL}/storage/v1/object/fotos/${fileName}`, {
@@ -176,7 +159,6 @@ async function uploadImage(file) {
     if (res.ok) return `${SUPABASE_URL}/storage/v1/object/public/fotos/${fileName}`;
   } catch (e) { console.log('Storage direto falhou'); }
 
-  // Metodo 3: base64
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
@@ -202,36 +184,23 @@ function isUUID(id) { return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}
 async function addMatchSupabase(fromId, toId, status) {
   if (isUUID(fromId) && isUUID(toId)) {
     try {
-      // Verifica se ja existe um match entre esses dois perfis
       const existing = await apiGet(`matches?select=*&from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`);
-      
       if (existing && existing.length > 0) {
-        // Ja existe - faz UPDATE do status
         const updated = await apiPatch('matches', `?from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`, { status });
         if (updated && updated.length > 0) return updated[0];
       } else {
-        // Nao existe - cria novo
         const data = await apiPost('matches', { from_profile_id: fromId, to_profile_id: toId, status });
         if (data && data.length > 0) return data[0];
       }
-    } catch (e) { 
-      // Se for erro de conflito (409), ignora
-      if (e.message && e.message.includes('409')) {
-        console.log('Match ja existe, ignorando');
-      } else {
-        console.log('addMatch erro:', e.message); 
-      }
-    }
+    } catch (e) { console.log('addMatch erro:', e.message); }
   }
-  // Fallback local
   return { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: status === 'interesse' && Math.random() > 0.3, created_at: new Date().toISOString() };
 }
 
 async function getMatchesSupabase() {
-  const user = getCurrentUser();
-  if (!user) return [];
   try {
-    // Busca matches onde o usuario e from OU to
+    const user = getCurrentUser();
+    if (!user) return [];
     const data = await apiGet(`matches?select=*&or=(from_profile_id.eq.${user.id},to_profile_id.eq.${user.id})&order=created_at.desc`);
     if (data && data.length > 0) return data;
   } catch (e) { console.log('getMatches erro:', e.message); }
@@ -265,6 +234,35 @@ async function getPrivateMessages(userId, otherId) {
     }
   } catch (e) { console.log('getPrivateMessages erro:', e.message); }
   return [];
+}
+
+// ===== NOTIFICACOES DE MATCH =====
+async function checkNewMatches() {
+  const user = getCurrentUser();
+  if (!user) return 0;
+  try {
+    // Busca matches onde eu sou o destinatario (alguem deu match em mim)
+    const data = await apiGet(`matches?select=*,from:from_profile_id(nick,fotos)&to_profile_id=eq.${user.id}&mutual=eq.true&order=created_at.desc&limit=20`);
+    if (!data || data.length === 0) return 0;
+
+    // Verifica quais ja foram vistos
+    const seenMatchIds = DB.get('seenMatches', []);
+    const newMatches = data.filter(m => !seenMatchIds.includes(m.id));
+
+    return newMatches.length;
+  } catch (e) { return 0; }
+}
+
+async function markMatchesAsSeen() {
+  const user = getCurrentUser();
+  if (!user) return;
+  try {
+    const data = await apiGet(`matches?select=id&to_profile_id=eq.${user.id}&mutual=eq.true`);
+    if (data && data.length > 0) {
+      const ids = data.map(m => m.id);
+      DB.set('seenMatches', ids);
+    }
+  } catch (e) { console.log('markSeen erro:', e.message); }
 }
 
 // ===== SPLASH SCREEN =====

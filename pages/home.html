@@ -31,8 +31,13 @@
     <div id="cardArea" style="flex: 1; display: flex; flex-direction: column; padding-bottom: 16px;">
       <!-- Profile Card -->
       <div id="profileCard" class="card-container" style="flex: 1; min-height: 400px;">
-        <div id="cardBg" class="card-image" style="background-image: url('');"></div>
+        <div id="cardBg" class="card-image" style="background-image: url(''); cursor: pointer;"></div>
         <div class="card-overlay"></div>
+        <!-- Ver Fotos Button -->
+        <button id="btnVerFotos" style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); border: none; border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ecc94b; font-size: 12px; font-weight: 600;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <span id="fotoCount">1 foto</span>
+        </button>
         <button id="infoBtn" style="position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); border: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #fff;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
         </button>
@@ -74,6 +79,34 @@
       <h3 style="color: #fff; font-size: 18px; margin-bottom: 8px;">Sem perfis por enquanto</h3>
       <p style="color: #a0aec0; font-size: 14px;">Volte mais tarde para ver novos casais!</p>
       <button onclick="resetCards()" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 24px;">Ver Novamente</button>
+    </div>
+
+    <!-- Photo Gallery Modal -->
+    <div id="galleryModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 500; flex-direction: column;">
+      <!-- Header -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px;">
+        <button onclick="closeGallery()" style="background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          Voltar
+        </button>
+        <span id="galleryCounter" style="color: #a0aec0; font-size: 14px;">1 / 3</span>
+        <div style="width: 60px;"></div>
+      </div>
+      <!-- Main Photo -->
+      <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative;">
+        <img id="galleryMainImg" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px;">
+        <!-- Nav arrows -->
+        <button id="galleryPrev" style="position: absolute; left: 16px; width: 44px; height: 44px; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <button id="galleryNext" style="position: absolute; right: 16px; width: 44px; height: 44px; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <!-- Thumbnails -->
+      <div id="galleryThumbs" style="display: flex; gap: 8px; padding: 16px; overflow-x: auto; justify-content: center;"></div>
+      <!-- Profile name -->
+      <div id="galleryProfileName" style="text-align: center; padding-bottom: 20px; color: #ecc94b; font-weight: 700; font-size: 16px;"></div>
     </div>
 
     <!-- Match Overlay -->
@@ -119,6 +152,9 @@
     let allProfiles = [];
     let myMatches = [];
     let currentIndex = 0;
+    let currentProfileFotos = [];
+    let currentProfileName = '';
+    let galleryIndex = 0;
     const myId = currentUser ? currentUser.id : 'guest';
 
     async function loadProfiles() {
@@ -198,6 +234,15 @@
       const testImg = new Image();
       testImg.onerror = () => { cardBg.style.backgroundImage = `url('${fallbackFoto}')`; };
       testImg.src = foto;
+
+      // Guarda fotos para a galeria
+      currentProfileFotos = (p.fotos || []).filter(f => f && !f.startsWith('blob:')).length > 0 ? p.fotos.filter(f => f && !f.startsWith('blob:')) : [fallbackFoto];
+      currentProfileName = p.nick || '---';
+
+      // Atualiza contador de fotos
+      const fotoCount = currentProfileFotos.length;
+      document.getElementById('fotoCount').textContent = fotoCount === 1 ? '1 foto' : `${fotoCount} fotos`;
+
       document.getElementById('cardName').textContent = p.nick || '---';
       document.getElementById('cardCity').textContent = p.cidade || '---';
       document.getElementById('detailDele').textContent = `${p.nomeDele || '---'}, ${p.idadeDele || '--'} anos`;
@@ -272,6 +317,72 @@
       const diff = e.changedTouches[0].clientX - startX;
       if (Math.abs(diff) > 80) swipe(diff > 0 ? 'right' : 'left');
     }, { passive: true });
+
+    // ===== GALERIA DE FOTOS =====
+    function openGallery() {
+      if (!currentProfileFotos || currentProfileFotos.length === 0) return;
+      galleryIndex = 0;
+      updateGallery();
+      const modal = document.getElementById('galleryModal');
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+
+    window.closeGallery = function() {
+      document.getElementById('galleryModal').style.display = 'none';
+      document.body.style.overflow = '';
+    };
+
+    function updateGallery() {
+      const img = document.getElementById('galleryMainImg');
+      const counter = document.getElementById('galleryCounter');
+      const thumbs = document.getElementById('galleryThumbs');
+      const nameEl = document.getElementById('galleryProfileName');
+
+      img.src = currentProfileFotos[galleryIndex];
+      counter.textContent = `${galleryIndex + 1} / ${currentProfileFotos.length}`;
+      nameEl.textContent = currentProfileName;
+
+      // Thumbnails
+      thumbs.innerHTML = '';
+      currentProfileFotos.forEach((url, i) => {
+        const thumb = document.createElement('div');
+        thumb.style.cssText = `width: 56px; height: 56px; border-radius: 8px; overflow: hidden; cursor: pointer; flex-shrink: 0; border: 2px solid ${i === galleryIndex ? '#ecc94b' : 'transparent'};`;
+        thumb.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">`;
+        thumb.onclick = () => { galleryIndex = i; updateGallery(); };
+        thumbs.appendChild(thumb);
+      });
+    }
+
+    document.getElementById('cardBg').addEventListener('click', openGallery);
+    document.getElementById('btnVerFotos').addEventListener('click', (e) => { e.stopPropagation(); openGallery(); });
+    document.getElementById('galleryPrev').addEventListener('click', () => {
+      if (galleryIndex > 0) { galleryIndex--; updateGallery(); }
+    });
+    document.getElementById('galleryNext').addEventListener('click', () => {
+      if (galleryIndex < currentProfileFotos.length - 1) { galleryIndex++; updateGallery(); }
+    });
+
+    // Swipe na galeria
+    let galleryStartX = 0;
+    const galleryModal = document.getElementById('galleryModal');
+    galleryModal.addEventListener('touchstart', (e) => { galleryStartX = e.touches[0].clientX; }, { passive: true });
+    galleryModal.addEventListener('touchend', (e) => {
+      const diff = e.changedTouches[0].clientX - galleryStartX;
+      if (Math.abs(diff) > 50) {
+        if (diff < 0 && galleryIndex < currentProfileFotos.length - 1) galleryIndex++;
+        else if (diff > 0 && galleryIndex > 0) galleryIndex--;
+        updateGallery();
+      }
+    }, { passive: true });
+
+    // Teclado (setas e ESC)
+    document.addEventListener('keydown', (e) => {
+      if (document.getElementById('galleryModal').style.display !== 'flex') return;
+      if (e.key === 'ArrowLeft' && galleryIndex > 0) { galleryIndex--; updateGallery(); }
+      else if (e.key === 'ArrowRight' && galleryIndex < currentProfileFotos.length - 1) { galleryIndex++; updateGallery(); }
+      else if (e.key === 'Escape') closeGallery();
+    });
 
     // Load
     loadProfiles();
