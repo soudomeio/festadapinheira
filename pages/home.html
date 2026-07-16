@@ -7,7 +7,48 @@
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
   <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-  <style> body { font-family: 'Inter', sans-serif; } </style>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .acao-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      z-index: 10;
+      backdrop-filter: blur(8px);
+      display: none;
+    }
+    .acao-badge.show { display: block; animation: badgePop 0.3s ease; }
+    .acao-badge.interesse { background: rgba(72, 187, 120, 0.8); color: #fff; border: 2px solid #48bb78; }
+    .acao-badge.talvez { background: rgba(236, 201, 75, 0.8); color: #1a202c; border: 2px solid #ecc94b; }
+    .acao-badge.nao { background: rgba(245, 101, 101, 0.8); color: #fff; border: 2px solid #f56565; }
+    .acao-mini {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      backdrop-filter: blur(8px);
+      z-index: 5;
+    }
+    .acao-mini.interesse { background: rgba(72, 187, 120, 0.3); color: #48bb78; border: 1px solid #48bb78; }
+    .acao-mini.talvez { background: rgba(236, 201, 75, 0.3); color: #ecc94b; border: 1px solid #ecc94b; }
+    .acao-mini.nao { background: rgba(245, 101, 101, 0.3); color: #f56565; border: 1px solid #f56565; }
+    @keyframes badgePop {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+  </style>
 </head>
 <body>
   <div class="app-container">
@@ -30,9 +71,21 @@
     <!-- Card Area -->
     <div id="cardArea" style="flex: 1; display: flex; flex-direction: column; padding-bottom: 16px;">
       <!-- Profile Card -->
-      <div id="profileCard" class="card-container" style="flex: 1; min-height: 400px;">
+      <div id="profileCard" class="card-container" style="flex: 1; min-height: 400px; position: relative;">
         <div id="cardBg" class="card-image" style="background-image: url(''); cursor: pointer;"></div>
         <div class="card-overlay"></div>
+
+        <!-- Badge de acao anterior -->
+        <div id="acaoBadge" class="acao-badge">
+          <span id="acaoBadgeText"></span>
+        </div>
+
+        <!-- Mini badge de acao anterior -->
+        <div id="acaoMini" class="acao-mini" style="display: none;">
+          <span id="acaoMiniIcon"></span>
+          <span id="acaoMiniText"></span>
+        </div>
+
         <!-- Ver Fotos Button -->
         <button id="btnVerFotos" style="position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); border: none; border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #ecc94b; font-size: 12px; font-weight: 600;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
@@ -68,7 +121,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         </button>
       </div>
-      <p style="text-align: center; color: #4a5568; font-size: 11px;">Deslize para os lados ou use os botoes</p>
+      <p style="text-align: center; color: #4a5568; font-size: 11px;" id="swipeHint">Deslize para os lados ou use os botoes</p>
     </div>
 
     <!-- Empty State -->
@@ -76,14 +129,16 @@
       <div style="width: 80px; height: 80px; background: #2d3748; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 16px;">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
       </div>
-      <h3 style="color: #fff; font-size: 18px; margin-bottom: 8px;">Sem perfis por enquanto</h3>
-      <p style="color: #a0aec0; font-size: 14px;">Volte mais tarde para ver novos casais!</p>
-      <button onclick="resetCards()" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 24px;">Ver Novamente</button>
+      <h3 style="color: #fff; font-size: 18px; margin-bottom: 8px;">Fim da rodada!</h3>
+      <p style="color: #a0aec0; font-size: 14px;">Voce viu todos os casais. Inicie uma nova rodada!</p>
+      <button onclick="novaRodada()" class="btn btn-primary" style="margin-top: 20px; width: auto; padding: 12px 24px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; vertical-align: middle; margin-right: 6px;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+        Nova Rodada
+      </button>
     </div>
 
     <!-- Photo Gallery Modal -->
     <div id="galleryModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 500; flex-direction: column;">
-      <!-- Header -->
       <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px;">
         <button onclick="closeGallery()" style="background: none; border: none; color: #fff; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -92,10 +147,8 @@
         <span id="galleryCounter" style="color: #a0aec0; font-size: 14px;">1 / 3</span>
         <div style="width: 60px;"></div>
       </div>
-      <!-- Main Photo -->
       <div style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative;">
         <img id="galleryMainImg" src="" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px;">
-        <!-- Nav arrows -->
         <button id="galleryPrev" style="position: absolute; left: 16px; width: 44px; height: 44px; background: rgba(0,0,0,0.5); border: none; border-radius: 50%; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
@@ -103,9 +156,7 @@
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
-      <!-- Thumbnails -->
       <div id="galleryThumbs" style="display: flex; gap: 8px; padding: 16px; overflow-x: auto; justify-content: center;"></div>
-      <!-- Profile name -->
       <div id="galleryProfileName" style="text-align: center; padding-bottom: 20px; color: #ecc94b; font-weight: 700; font-size: 16px;"></div>
     </div>
 
@@ -116,6 +167,8 @@
         <h2 style="color: #fff; font-size: 32px; font-weight: 700; margin-bottom: 8px;">E um Match!</h2>
         <p style="color: #a0aec0; margin-bottom: 24px;">Voces se interessaram!</p>
         <button onclick="closeMatch()" class="btn btn-primary" style="width: auto; padding: 14px 32px;">Continuar</button>
+        <br><br>
+        <a href="chat.html" class="btn btn-outline" style="width: auto; padding: 10px 24px; text-decoration: none; display: inline-block;">Ir para Chat</a>
       </div>
     </div>
 
@@ -148,13 +201,49 @@
       document.getElementById('userAvatar').innerHTML = `<img src="${currentUser.fotos[0]}" style="width: 100%; height: 100%; object-fit: cover;">`;
     }
 
-    // Load profiles from Supabase
+    // ===== RODADAS =====
+    // Guarda acoes por rodada: { profileId: 'interesse'|'talvez'|'nao' }
+    function getRodadaAtual() {
+      try { return parseInt(sessionStorage.getItem('fp_rodada') || '1'); } catch { return 1; }
+    }
+    function setRodada(n) { sessionStorage.setItem('fp_rodada', String(n)); }
+    function getAcoes() {
+      const r = getRodadaAtual();
+      try { return JSON.parse(sessionStorage.getItem('fp_acoes_' + r) || '{}'); } catch { return {}; }
+    }
+    function setAcao(profileId, acao) {
+      const r = getRodadaAtual();
+      const acoes = getAcoes();
+      acoes[profileId] = acao;
+      sessionStorage.setItem('fp_acoes_' + r, JSON.stringify(acoes));
+    }
+    function getAcaoAnterior(profileId) {
+      // Busca na rodada anterior
+      const r = getRodadaAtual();
+      if (r <= 1) return null;
+      try {
+        const acoes = JSON.parse(sessionStorage.getItem('fp_acoes_' + (r - 1)) || '{}');
+        return acoes[profileId] || null;
+      } catch { return null; }
+    }
+
+    window.novaRodada = function() {
+      const r = getRodadaAtual() + 1;
+      setRodada(r);
+      currentIndex = 0;
+      document.getElementById('cardArea').classList.remove('hidden');
+      document.getElementById('cardArea').style.display = 'flex';
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('emptyState').style.display = 'none';
+      showProfile();
+    };
+
+    // ===== PROFILES =====
     let allProfiles = [];
-    let myMatches = [];
     let currentIndex = 0;
     let currentProfileFotos = [];
     let currentProfileName = '';
-    let galleryIndex = 0;
+    let galleryIdx = 0;
 
     function getMyId() {
       const u = getCurrentUser();
@@ -162,62 +251,30 @@
     }
 
     async function loadProfiles() {
-      const myId = getMyId();
-      console.log('My ID:', myId);
-
-      // Carrega meus matches primeiro
-      try {
-        const matchData = await getMatchesSupabase();
-        myMatches = matchData || [];
-        console.log('Meus matches carregados:', myMatches.length, myMatches);
-      } catch (e) { console.log('Erro carregando matches:', e); }
-
-      // Try Supabase first
       try {
         const data = await getProfiles();
         if (data && data.length > 0) {
           allProfiles = data.map(p => ({
-            id: p.id,
-            nick: p.nick,
-            nomeDele: p.nome_dele,
-            nomeDela: p.nome_dela,
-            cidade: p.cidade,
-            preferencias: p.preferencias || [],
-            fotos: p.fotos || [],
-            bio: p.bio || '',
-            idadeDele: p.idade_dele || 30,
-            idadeDela: p.idade_dela || 28,
-            online: p.online || false,
+            id: p.id, nick: p.nick, nomeDele: p.nomeDele, nomeDela: p.nomeDela,
+            cidade: p.cidade, preferencias: p.preferencias || [], fotos: p.fotos || [],
+            bio: p.bio || '', idadeDele: p.idadeDele || 30, idadeDela: p.idadeDela || 28, online: p.online || false,
           }));
         }
       } catch (e) {
-        console.log('Using local profiles');
-        allProfiles = DB.get('profiles', []);
+        allProfiles = [];
       }
-
-      // Merge with local profiles if any
-      const localProfiles = DB.get('profiles', []);
-      localProfiles.forEach(lp => {
-        if (!allProfiles.find(ap => ap.id === lp.id)) {
-          allProfiles.push(lp);
-        }
-      });
-
       currentIndex = 0;
       showProfile();
     }
 
     function getAvailableProfiles() {
       const myId = getMyId();
-      // Filtra: proprio perfil + perfis que ja dei match
+      // Filtra: proprio perfil + perfis sem acao na rodada atual
+      const acoes = getAcoes();
       return allProfiles.filter(p => {
-        if (p.id === myId) return false;
-        // Verifica se ja dei match neste perfil
-        const jaDeuMatch = myMatches.some(m =>
-          (m.from_profile_id === myId && m.to_profile_id === p.id) ||
-          (m.to_profile_id === myId && m.from_profile_id === p.id)
-        );
-        return !jaDeuMatch;
+        if (p.id === myId) return false; // nao mostra si mesmo
+        // So filtra se JA deu acao NESTA rodada
+        return !acoes[p.id];
       });
     }
 
@@ -225,31 +282,29 @@
       const available = getAvailableProfiles();
       if (currentIndex >= available.length) {
         document.getElementById('cardArea').classList.add('hidden');
+        document.getElementById('cardArea').style.display = 'none';
         document.getElementById('emptyState').classList.remove('hidden');
         document.getElementById('emptyState').style.display = 'flex';
         return;
       }
 
       document.getElementById('cardArea').classList.remove('hidden');
+      document.getElementById('cardArea').style.display = 'flex';
       document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('emptyState').style.display = 'none';
 
       const p = available[currentIndex];
       const fallbackFoto = 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=600&h=800&fit=crop';
       const foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : fallbackFoto;
       const cardBg = document.getElementById('cardBg');
       cardBg.style.backgroundImage = `url('${foto}')`;
-      // Fallback se a imagem falhar (blob URLs expiradas)
       const testImg = new Image();
       testImg.onerror = () => { cardBg.style.backgroundImage = `url('${fallbackFoto}')`; };
       testImg.src = foto;
 
-      // Guarda fotos para a galeria
       currentProfileFotos = (p.fotos || []).filter(f => f && !f.startsWith('blob:')).length > 0 ? p.fotos.filter(f => f && !f.startsWith('blob:')) : [fallbackFoto];
       currentProfileName = p.nick || '---';
-
-      // Atualiza contador de fotos
-      const fotoCount = currentProfileFotos.length;
-      document.getElementById('fotoCount').textContent = fotoCount === 1 ? '1 foto' : `${fotoCount} fotos`;
+      document.getElementById('fotoCount').textContent = currentProfileFotos.length === 1 ? '1 foto' : `${currentProfileFotos.length} fotos`;
 
       document.getElementById('cardName').textContent = p.nick || '---';
       document.getElementById('cardCity').textContent = p.cidade || '---';
@@ -260,145 +315,133 @@
       const tagsEl = document.getElementById('cardTags');
       tagsEl.innerHTML = '';
       (p.preferencias || []).slice(0, 3).forEach(pref => {
-        const label = getPrefLabel(pref);
-        tagsEl.innerHTML += `<span class="tag">${label}</span>`;
+        tagsEl.innerHTML += `<span class="tag">${getPrefLabel(pref)}</span>`;
       });
-      if ((p.preferencias || []).length > 3) {
-        tagsEl.innerHTML += `<span style="color: #a0aec0; font-size: 11px;">+${p.preferencias.length - 3}</span>`;
+
+      // Mostra acao anterior se existe
+      const acaoAnt = getAcaoAnterior(p.id);
+      const badge = document.getElementById('acaoBadge');
+      const mini = document.getElementById('acaoMini');
+      const badgeText = document.getElementById('acaoBadgeText');
+      const miniIcon = document.getElementById('acaoMiniIcon');
+      const miniText = document.getElementById('acaoMiniText');
+
+      if (acaoAnt) {
+        const labels = { interesse: 'Voce curtiu', talvez: 'Talvez role', nao: 'Passou' };
+        const icons = { interesse: '❤️', talvez: '⭐', nao: '❌' };
+        badgeText.textContent = labels[acaoAnt];
+        badge.className = 'acao-badge ' + acaoAnt;
+        badge.classList.add('show');
+        setTimeout(() => badge.classList.remove('show'), 2000);
+
+        miniIcon.textContent = icons[acaoAnt];
+        miniText.textContent = 'Rodada anterior: ' + labels[acaoAnt];
+        mini.className = 'acao-mini ' + acaoAnt;
+        mini.style.display = 'flex';
+      } else {
+        badge.classList.remove('show');
+        mini.style.display = 'none';
       }
     }
 
+    // ===== SWIPE =====
     async function swipe(direction) {
       const available = getAvailableProfiles();
       if (currentIndex >= available.length) return;
 
-      const profile = available[currentIndex];
+      const p = available[currentIndex];
       const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
+      const acao = statusMap[direction];
       const myId = getMyId();
 
-      console.log('Dando match:', myId, '->', profile.id, direction);
+      // Guarda acao desta rodada
+      setAcao(p.id, acao);
 
-      // Save match
-      let isMutual = false;
+      // Salva no Supabase
       try {
-        const result = await addMatchSupabase(myId, profile.id, statusMap[direction]);
-        console.log('Match result:', result);
-        isMutual = result && result.mutual;
+        await addMatchSupabase(myId, p.id, acao);
+      } catch (e) { console.log('Match erro:', e); }
 
-        // Recarrega matches para atualizar o feed
+      // Animacao
+      if (acao === 'interesse') {
+        // Verifica se e match mutuo
         try {
-          const matchData = await getMatchesSupabase();
-          myMatches = matchData || [];
-          console.log('Matches atualizados:', myMatches.length);
-        } catch (e) { console.log('Erro recarregando matches'); }
-      } catch (e) {
-        console.log('Erro no match:', e);
-        isMutual = direction === 'right' && Math.random() > 0.3;
-      }
-
-      // Show match animation
-      if (direction === 'right' && isMutual) {
-        document.getElementById('matchOverlay').classList.add('show');
+          const matches = await getMatchesSupabase();
+          const isMutual = matches.some(m =>
+            ((m.from_profile_id === myId && m.to_profile_id === p.id) ||
+             (m.from_profile_id === p.id && m.to_profile_id === myId)) &&
+            m.mutual
+          );
+          if (isMutual) {
+            document.getElementById('matchOverlay').classList.add('show');
+            return; // nao avanca, espera clicar
+          }
+        } catch (e) { /* fallback */ }
       }
 
       currentIndex++;
       showProfile();
     }
 
-    window.resetCards = function() {
-      currentIndex = 0;
-      DB.set('swipeIndex', 0);
+    window.closeMatch = function() {
+      document.getElementById('matchOverlay').classList.remove('show');
+      currentIndex++;
       showProfile();
     };
 
-    window.closeMatch = function() {
-      document.getElementById('matchOverlay').classList.remove('show');
-    };
-
-    // Info toggle
+    // ===== EVENT LISTENERS =====
     let infoOpen = false;
     document.getElementById('infoBtn').addEventListener('click', () => {
       infoOpen = !infoOpen;
       document.getElementById('cardDetails').style.display = infoOpen ? 'block' : 'none';
     });
-
-    // Swipe buttons
     document.getElementById('btnNao').addEventListener('click', () => swipe('left'));
     document.getElementById('btnTalvez').addEventListener('click', () => swipe('up'));
     document.getElementById('btnInteresse').addEventListener('click', () => swipe('right'));
 
-    // Touch swipe
-    let startX = 0;
+    let touchStartX = 0;
     const card = document.getElementById('profileCard');
-    card.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+    card.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
     card.addEventListener('touchend', e => {
-      const diff = e.changedTouches[0].clientX - startX;
+      const diff = e.changedTouches[0].clientX - touchStartX;
       if (Math.abs(diff) > 80) swipe(diff > 0 ? 'right' : 'left');
     }, { passive: true });
 
-    // ===== GALERIA DE FOTOS =====
+    // ===== GALERIA =====
     function openGallery() {
       if (!currentProfileFotos || currentProfileFotos.length === 0) return;
-      galleryIndex = 0;
+      galleryIdx = 0;
       updateGallery();
-      const modal = document.getElementById('galleryModal');
-      modal.style.display = 'flex';
+      document.getElementById('galleryModal').style.display = 'flex';
       document.body.style.overflow = 'hidden';
     }
-
     window.closeGallery = function() {
       document.getElementById('galleryModal').style.display = 'none';
       document.body.style.overflow = '';
     };
-
     function updateGallery() {
-      const img = document.getElementById('galleryMainImg');
-      const counter = document.getElementById('galleryCounter');
+      document.getElementById('galleryMainImg').src = currentProfileFotos[galleryIdx];
+      document.getElementById('galleryCounter').textContent = `${galleryIdx + 1} / ${currentProfileFotos.length}`;
+      document.getElementById('galleryProfileName').textContent = currentProfileName;
       const thumbs = document.getElementById('galleryThumbs');
-      const nameEl = document.getElementById('galleryProfileName');
-
-      img.src = currentProfileFotos[galleryIndex];
-      counter.textContent = `${galleryIndex + 1} / ${currentProfileFotos.length}`;
-      nameEl.textContent = currentProfileName;
-
-      // Thumbnails
       thumbs.innerHTML = '';
       currentProfileFotos.forEach((url, i) => {
-        const thumb = document.createElement('div');
-        thumb.style.cssText = `width: 56px; height: 56px; border-radius: 8px; overflow: hidden; cursor: pointer; flex-shrink: 0; border: 2px solid ${i === galleryIndex ? '#ecc94b' : 'transparent'};`;
-        thumb.innerHTML = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">`;
-        thumb.onclick = () => { galleryIndex = i; updateGallery(); };
-        thumbs.appendChild(thumb);
+        const d = document.createElement('div');
+        d.style.cssText = `width:56px;height:56px;border-radius:8px;overflow:hidden;cursor:pointer;flex-shrink:0;border:2px solid ${i===galleryIdx?'#ecc94b':'transparent'};`;
+        d.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">`;
+        d.onclick = () => { galleryIdx = i; updateGallery(); };
+        thumbs.appendChild(d);
       });
     }
-
     document.getElementById('cardBg').addEventListener('click', openGallery);
     document.getElementById('btnVerFotos').addEventListener('click', (e) => { e.stopPropagation(); openGallery(); });
-    document.getElementById('galleryPrev').addEventListener('click', () => {
-      if (galleryIndex > 0) { galleryIndex--; updateGallery(); }
-    });
-    document.getElementById('galleryNext').addEventListener('click', () => {
-      if (galleryIndex < currentProfileFotos.length - 1) { galleryIndex++; updateGallery(); }
-    });
+    document.getElementById('galleryPrev').addEventListener('click', () => { if (galleryIdx > 0) { galleryIdx--; updateGallery(); } });
+    document.getElementById('galleryNext').addEventListener('click', () => { if (galleryIdx < currentProfileFotos.length - 1) { galleryIdx++; updateGallery(); } });
 
-    // Swipe na galeria
-    let galleryStartX = 0;
-    const galleryModal = document.getElementById('galleryModal');
-    galleryModal.addEventListener('touchstart', (e) => { galleryStartX = e.touches[0].clientX; }, { passive: true });
-    galleryModal.addEventListener('touchend', (e) => {
-      const diff = e.changedTouches[0].clientX - galleryStartX;
-      if (Math.abs(diff) > 50) {
-        if (diff < 0 && galleryIndex < currentProfileFotos.length - 1) galleryIndex++;
-        else if (diff > 0 && galleryIndex > 0) galleryIndex--;
-        updateGallery();
-      }
-    }, { passive: true });
-
-    // Teclado (setas e ESC)
     document.addEventListener('keydown', (e) => {
       if (document.getElementById('galleryModal').style.display !== 'flex') return;
-      if (e.key === 'ArrowLeft' && galleryIndex > 0) { galleryIndex--; updateGallery(); }
-      else if (e.key === 'ArrowRight' && galleryIndex < currentProfileFotos.length - 1) { galleryIndex++; updateGallery(); }
+      if (e.key === 'ArrowLeft' && galleryIdx > 0) { galleryIdx--; updateGallery(); }
+      else if (e.key === 'ArrowRight' && galleryIdx < currentProfileFotos.length - 1) { galleryIdx++; updateGallery(); }
       else if (e.key === 'Escape') closeGallery();
     });
 
