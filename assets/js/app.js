@@ -185,19 +185,40 @@ async function getProfiles() {
 function isUUID(id) { return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id); }
 
 async function addMatchSupabase(fromId, toId, status) {
-  if (isUUID(fromId) && isUUID(toId)) {
-    try {
-      const existing = await apiGet(`matches?select=*&from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`);
-      if (existing && existing.length > 0) {
-        const updated = await apiPatch('matches', `?from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`, { status });
-        if (updated && updated.length > 0) return updated[0];
-      } else {
-        const data = await apiPost('matches', { from_profile_id: fromId, to_profile_id: toId, status });
-        if (data && data.length > 0) return data[0];
-      }
-    } catch (e) { console.log('addMatch erro:', e.message); }
+  if (!isUUID(fromId) || !isUUID(toId)) {
+    return { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: false, created_at: new Date().toISOString() };
   }
-  return { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: status === 'interesse' && Math.random() > 0.3, created_at: new Date().toISOString() };
+
+  try {
+    // 1. Verifica se ja existe um match do fromId para o toId
+    const meuMatch = await apiGet(`matches?select=*&from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`);
+
+    // 2. Verifica se o outro usuario ja deu interesse em mim (match mutuo)
+    const matchDele = await apiGet(`matches?select=*&from_profile_id=eq.${toId}&to_profile_id=eq.${fromId}`);
+    const deuInteresseEmMim = matchDele && matchDele.length > 0 && matchDele[0].status === 'interesse';
+
+    // 3. Calcula se e mutuo: ambos deram interesse
+    const eInteresse = status === 'interesse';
+    const mutual = eInteresse && deuInteresseEmMim;
+
+    // 4. Atualiza ou insere o meu match
+    let result;
+    if (meuMatch && meuMatch.length > 0) {
+      result = await apiPatch('matches', `?from_profile_id=eq.${fromId}&to_profile_id=eq.${toId}`, { status, mutual });
+    } else {
+      result = await apiPost('matches', { from_profile_id: fromId, to_profile_id: toId, status, mutual });
+    }
+
+    // 5. Se virou mutuo, atualiza o match do outro usuario tambem
+    if (mutual && matchDele && matchDele.length > 0 && !matchDele[0].mutual) {
+      await apiPatch('matches', `?from_profile_id=eq.${toId}&to_profile_id=eq.${fromId}`, { mutual: true });
+    }
+
+    return result && result.length > 0 ? result[0] : { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual, created_at: new Date().toISOString() };
+  } catch (e) {
+    console.log('addMatch erro:', e.message);
+    return { id: 'm' + Date.now(), from_profile_id: fromId, to_profile_id: toId, status, mutual: false, created_at: new Date().toISOString() };
+  }
 }
 
 async function getMatchesSupabase() {

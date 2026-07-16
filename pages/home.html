@@ -371,25 +371,15 @@
       updateDesfazerBtn();
 
       // Salva no Supabase
+      let matchResult = null;
       try {
-        await addMatchSupabase(myId, p.id, acao);
+        matchResult = await addMatchSupabase(myId, p.id, acao);
       } catch (e) { console.log('Match erro:', e); }
 
       // Animacao
-      if (acao === 'interesse') {
-        // Verifica se e match mutuo
-        try {
-          const matches = await getMatchesSupabase();
-          const isMutual = matches.some(m =>
-            ((m.from_profile_id === myId && m.to_profile_id === p.id) ||
-             (m.from_profile_id === p.id && m.to_profile_id === myId)) &&
-            m.mutual
-          );
-          if (isMutual) {
-            document.getElementById('matchOverlay').classList.add('show');
-            return; // nao avanca, espera clicar
-          }
-        } catch (e) { /* fallback */ }
+      if (acao === 'interesse' && matchResult && matchResult.mutual) {
+        document.getElementById('matchOverlay').classList.add('show');
+        return; // nao avanca, espera clicar
       }
 
       currentIndex++;
@@ -420,21 +410,23 @@
     window.desfazerAcao = async function() {
       if (!lastProfileId || currentIndex <= 0) return;
 
+      const perfilDesfazer = lastProfileId;
+
       // Remove a acao do sessionStorage desta rodada
       const acoes = getAcoes();
-      delete acoes[lastProfileId];
+      delete acoes[perfilDesfazer];
       sessionStorage.setItem('fp_acoes_' + getRodadaAtual(), JSON.stringify(acoes));
+
+      // Atualiza o Supabase: remove o match
+      const myId = getMyId();
+      try {
+        await apiDelete('matches', `?from_profile_id=eq.${myId}&to_profile_id=eq.${perfilDesfazer}`);
+      } catch (e) { /* ignora erro */ }
 
       // Volta para o perfil anterior
       currentIndex--;
       lastProfileId = null;
       updateDesfazerBtn();
-
-      // Atualiza o Supabase: remove o match da rodada atual
-      const myId = getMyId();
-      try {
-        await apiDelete('matches', `?from_profile_id=eq.${myId}&to_profile_id=eq.${lastProfileId}`);
-      } catch (e) { /* ignora erro */ }
 
       const desfAvail = getAvailableProfiles();
       document.getElementById('perfisRestantes').textContent = currentIndex < desfAvail.length ? `${currentIndex + 1} de ${desfAvail.length}` : '0';
