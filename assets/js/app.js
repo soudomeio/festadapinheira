@@ -186,18 +186,54 @@ async function checkNickExistsSupabase(nick) {
   return users.some(u => u.nick.toLowerCase() === nick.toLowerCase());
 }
 
-// Upload de imagem
+// URL da Edge Function
+const EDGE_FUNCTION_URL = 'https://zxmddvkjspbapzifrhqh.supabase.co/functions/v1/photos';
+
+// Upload de imagem via Edge Function (URL permanente no Storage)
 async function uploadImage(file) {
+  const currentUser = getCurrentUser();
+  const userId = currentUser ? currentUser.id : 'anonymous';
+
+  // Metodo 1: Edge Function (recomendado - URL permanente)
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('userId', userId);
+
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+      body: formData,
+    });
+
+    const result = await response.json();
+    if (result.success && result.url) {
+      console.log('Foto enviada via Edge Function:', result.url);
+      return result.url;
+    }
+  } catch (e) { console.log('Edge Function falhou, tentando metodo direto'); }
+
+  // Metodo 2: Upload direto no Storage
   if (sbClient) {
     try {
-      const fileName = Date.now() + '_' + file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileName = `${userId}/${Date.now()}_${Math.random().toString(36).substring(2, 10)}.${file.name.split('.').pop()}`;
       const { error } = await sbClient.storage.from('fotos').upload(fileName, file, { cacheControl: '3600', upsert: false });
-      if (error) return null;
-      const { data: urlData } = sbClient.storage.from('fotos').getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch (e) { console.log('Upload falhou'); }
+      if (!error) {
+        const { data: urlData } = sbClient.storage.from('fotos').getPublicUrl(fileName);
+        return urlData.publicUrl;
+      }
+    } catch (e) { console.log('Upload direto falhou, usando base64'); }
   }
-  return null;
+
+  // Metodo 3: Fallback base64 (persiste no localStorage)
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
 }
 
 // ===== PROFILES =====
@@ -212,8 +248,14 @@ async function getProfiles() {
 }
 
 // ===== MATCHES =====
+// Verifica se um ID e um UUID valido
+function isUUID(id) {
+  return typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 async function addMatchSupabase(fromId, toId, status) {
-  if (sbClient) {
+  // Só tenta Supabase se AMBOS os IDs forem UUIDs validos
+  if (sbClient && isUUID(fromId) && isUUID(toId)) {
     try {
       const { data, error } = await sbClient.from('matches').insert([{ from_profile_id: fromId, to_profile_id: toId, status }]).select();
       if (!error && data && data.length > 0) return data[0];
