@@ -155,15 +155,22 @@
     let currentProfileFotos = [];
     let currentProfileName = '';
     let galleryIndex = 0;
-    const myId = currentUser ? currentUser.id : 'guest';
+
+    function getMyId() {
+      const u = getCurrentUser();
+      return u ? u.id : 'guest';
+    }
 
     async function loadProfiles() {
+      const myId = getMyId();
+      console.log('My ID:', myId);
+
       // Carrega meus matches primeiro
       try {
         const matchData = await getMatchesSupabase();
         myMatches = matchData || [];
-        console.log('Meus matches:', myMatches.length);
-      } catch (e) { console.log('Erro carregando matches'); }
+        console.log('Meus matches carregados:', myMatches.length, myMatches);
+      } catch (e) { console.log('Erro carregando matches:', e); }
 
       // Try Supabase first
       try {
@@ -201,6 +208,7 @@
     }
 
     function getAvailableProfiles() {
+      const myId = getMyId();
       // Filtra: proprio perfil + perfis que ja dei match
       return allProfiles.filter(p => {
         if (p.id === myId) return false;
@@ -266,14 +274,25 @@
 
       const profile = available[currentIndex];
       const statusMap = { right: 'interesse', up: 'talvez', left: 'nao' };
+      const myId = getMyId();
+
+      console.log('Dando match:', myId, '->', profile.id, direction);
 
       // Save match
       let isMutual = false;
       try {
-        const result = await addMatchSupabase(currentUser ? currentUser.id : 'guest', profile.id, statusMap[direction]);
+        const result = await addMatchSupabase(myId, profile.id, statusMap[direction]);
+        console.log('Match result:', result);
         isMutual = result && result.mutual;
+
+        // Recarrega matches para atualizar o feed
+        try {
+          const matchData = await getMatchesSupabase();
+          myMatches = matchData || [];
+          console.log('Matches atualizados:', myMatches.length);
+        } catch (e) { console.log('Erro recarregando matches'); }
       } catch (e) {
-        // Fallback local
+        console.log('Erro no match:', e);
         isMutual = direction === 'right' && Math.random() > 0.3;
       }
 
@@ -283,7 +302,6 @@
       }
 
       currentIndex++;
-      DB.set('swipeIndex', currentIndex);
       showProfile();
     }
 
