@@ -305,10 +305,18 @@
       if (el) el.scrollTop = el.scrollHeight;
     }
 
-    // Atualizar mensagens a cada 5 segundos
+    // Atualizar mensagens automaticamente a cada 3 segundos
     setInterval(() => {
-      if (activeTab === 'global') renderGlobalMessages();
-    }, 5000);
+      if (activeTab === 'global') {
+        renderGlobalMessages();
+      } else if (activeTab === 'private') {
+        if (activePrivateChat) {
+          renderPrivateMessages();
+        } else {
+          renderPrivateList(); // atualiza lista de conversas
+        }
+      }
+    }, 3000);
 
     // Init
     loadProfiles().then(() => renderGlobalMessages());
