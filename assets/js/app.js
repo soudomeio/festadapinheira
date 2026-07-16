@@ -228,8 +228,11 @@ async function addMatchSupabase(fromId, toId, status) {
 }
 
 async function getMatchesSupabase() {
+  const user = getCurrentUser();
+  if (!user) return [];
   try {
-    const data = await apiGet('matches?select=*&order=created_at.desc');
+    // Busca matches onde o usuario e from OU to
+    const data = await apiGet(`matches?select=*&or=(from_profile_id.eq.${user.id},to_profile_id.eq.${user.id})&order=created_at.desc`);
     if (data && data.length > 0) return data;
   } catch (e) { console.log('getMatches erro:', e.message); }
   return [];

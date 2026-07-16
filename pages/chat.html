@@ -187,15 +187,24 @@
       }
 
       container.innerHTML = '';
+      const shownIds = new Set(); // evita duplicados
+
       matches.forEach(m => {
-        const p = allProfiles.find(prof => prof.id === m.to_profile_id || prof.id === m.from_profile_id);
-        if (!p || (currentUser && p.id === currentUser.id)) return;
+        // Pega o OUTRO perfil do match (nao o usuario atual)
+        const myId = currentUser ? currentUser.id : '';
+        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
+
+        if (shownIds.has(otherId)) return; // ja mostrou
+        shownIds.add(otherId);
+
+        const p = allProfiles.find(prof => prof.id === otherId);
+        if (!p) return;
 
         container.innerHTML += `
           <div onclick="openPrivateChat('${p.id}')" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 4px;" onmouseover="this.style.background='#2d3748'" onmouseout="this.style.background='transparent'">
             <div style="position: relative;">
               <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; background: #2d3748;">
-                <img src="${(p.fotos && p.fotos[0]) ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">
+                <img src="${(p.fotos && p.fotos[0]) ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">
               </div>
               ${p.online ? '<div class="online-dot"></div>' : ''}
             </div>
