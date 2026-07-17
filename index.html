@@ -52,7 +52,7 @@
         </p>
 
         <p style="text-align: center; margin-top: 12px;">
-          <a href="pages/home.html" style="color: #4a5568; font-size: 13px; text-decoration: none;">Entrar como convidado</a>
+          <a href="pages/matches.html" style="color: #4a5568; font-size: 13px; text-decoration: none;">Entrar como convidado</a>
         </p>
 
         <p style="text-align: center; color: #4a5568; font-size: 12px; margin-top: 32px;">
@@ -83,7 +83,7 @@
       try {
         const success = await loginSupabase(nick, senha);
         if (success) {
-          window.location.href = 'pages/home.html';
+          window.location.href = 'pages/matches.html';
         } else {
           errorEl.textContent = 'Nick ou senha incorretos';
           errorEl.classList.remove('hidden');

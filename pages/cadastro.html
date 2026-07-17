@@ -451,7 +451,7 @@
         }, formData.senha);
 
         if (success) {
-          window.location.href = 'home.html';
+          window.location.href = 'matches.html';
         } else {
           // Fallback: save locally
           const newId = 'local_' + Date.now();
@@ -468,7 +468,7 @@
           profiles.push(newProfile);
           DB.set('profiles', profiles);
 
-          window.location.href = 'home.html';
+          window.location.href = 'matches.html';
         }
       } catch (e) {
         btn.textContent = 'Erro. Tente novamente.';

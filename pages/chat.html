@@ -79,10 +79,6 @@
 
     <!-- Bottom Nav -->
     <nav class="bottom-nav">
-      <a href="home.html" class="nav-item">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Inicio
-      </a>
       <a href="chat.html" class="nav-item active">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         Chat
@@ -104,6 +100,11 @@
     let activeTab = 'global';
     let activePrivateChat = null;
     let allProfiles = [];
+    let lastGlobalIds = '';
+    let lastPrivateIds = '';
+    // Aceita ?to=<profileId> para abrir chat direto
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _openTo = _urlParams.get('to');
 
     async function loadProfiles() {
       try {
@@ -143,8 +144,22 @@
         msgs = DB.get('messages', []).filter(m => !m.isPrivate);
       }
 
+      // Filtra comentarios de fotos (nao aparecem no chat global)
+      msgs = (msgs || []).filter(m => !(m.content || '').startsWith('[PC]'));
+
       const container = document.getElementById('globalMessages');
       const myId = currentUser ? currentUser.id : 'guest';
+
+      // Se nada mudou, nao re-renderiza (evita reset de scroll)
+      const sig = msgs.map(m => m.id).join(',');
+      if (sig === lastGlobalIds) return;
+      lastGlobalIds = sig;
+
+      // Guarda posicao do scroll antes de reconstruir
+      const scrollEl = document.getElementById('globalChat');
+      const wasNearBottom = scrollEl ? (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 120 : true;
+      const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+
       container.innerHTML = '';
 
       if (!msgs || msgs.length === 0) {
@@ -175,64 +190,57 @@
             </div>`;
         }
       });
-      scrollToBottom('globalChat');
+      // So faz auto-scroll se o usuario ja estava perto do fim
+      if (wasNearBottom) {
+        scrollToBottom('globalChat');
+      } else if (scrollEl) {
+        scrollEl.scrollTop = prevScrollTop;
+      }
     }
 
     async function renderPrivateList() {
-      let matches = [];
+      const container = document.getElementById('privateConversations');
+      const myId = currentUser ? currentUser.id : '';
+      container.innerHTML = '';
+
+      // Carrega meus matches para marcar quem tem match mutuo
+      let myMatches = {};
       try {
         const data = await getMatchesSupabase();
-        matches = data.filter(m => m.mutual);
-      } catch (e) {
-        matches = DB.get('matches', []).filter(m => m.mutual);
-      }
+        data.forEach(m => {
+          const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
+          if (!myMatches[otherId]) myMatches[otherId] = { mutual: false };
+          if (m.mutual) myMatches[otherId].mutual = true;
+        });
+      } catch (e) {}
 
-      const container = document.getElementById('privateConversations');
-
-      if (matches.length === 0) {
-        container.innerHTML = `
-          <div style="text-align: center; padding: 60px 20px;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4a5568" stroke-width="2" style="margin: 0 auto 16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <h3 style="color: #fff; margin-bottom: 8px;">Sem conversas privadas</h3>
-            <p style="color: #a0aec0; font-size: 14px;">De match em alguem para comecar uma conversa.</p>
-            <a href="home.html" style="display: inline-block; margin-top: 16px; background: #ecc94b; color: #1a202c; padding: 10px 20px; border-radius: 12px; text-decoration: none; font-weight: 700; font-size: 14px;">Explorar Perfis</a>
-          </div>`;
+      // Lista TODOS os perfis (permite conversar sem match)
+      const others = allProfiles.filter(p => p.id !== myId);
+      if (others.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#a0aec0;">Nenhum perfil disponivel.</div>`;
         return;
       }
 
-      container.innerHTML = '';
-      const shownIds = new Set();
-      const myId = currentUser ? currentUser.id : '';
-
-      // Agrupa por casal - so mostra um por par
-      const coupleMap = {};
-      matches.forEach(m => {
-        const a = m.from_profile_id;
-        const b = m.to_profile_id;
-        const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-        if (!coupleMap[key]) coupleMap[key] = m;
+      // Ordena: matches mutuos primeiro
+      others.sort((a, b) => {
+        const am = myMatches[a.id] && myMatches[a.id].mutual ? 1 : 0;
+        const bm = myMatches[b.id] && myMatches[b.id].mutual ? 1 : 0;
+        return bm - am;
       });
 
-      Object.values(coupleMap).forEach(m => {
-        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
-        if (otherId === myId) return;
-        if (shownIds.has(otherId)) return;
-        shownIds.add(otherId);
-
-        const p = allProfiles.find(prof => prof.id === otherId);
-        if (!p) return;
-
+      others.forEach(p => {
+        const mutual = myMatches[p.id] && myMatches[p.id].mutual;
         container.innerHTML += `
-          <div onclick="openPrivateChat('${p.id}')" style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; cursor: pointer; margin-bottom: 4px;" onmouseover="this.style.background='#2d3748'" onmouseout="this.style.background='transparent'">
-            <div style="position: relative;">
-              <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; background: #2d3748;">
-                <img src="${(p.fotos && p.fotos[0]) ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.style.display='none'">
+          <div onclick="openPrivateChat('${p.id}')" style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:4px;">
+            <div style="position:relative;">
+              <div style="width:50px;height:50px;border-radius:50%;overflow:hidden;background:#2d3748;">
+                <img src="${(p.fotos && p.fotos[0]) ? p.fotos[0] : ''}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">
               </div>
               ${p.online ? '<div class="online-dot"></div>' : ''}
             </div>
-            <div style="flex: 1; min-width: 0;">
-              <div style="font-weight: 600;">${p.nick || '---'}</div>
-              <div style="font-size: 13px; color: #a0aec0;">Clique para conversar</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;">${escapeHtml(p.nick || '---')} ${mutual ? '<span style="color:#f56565;font-size:12px;">&#9829;</span>' : ''}</div>
+              <div style="font-size:13px;color:#a0aec0;">${mutual ? 'Match mutuo' : 'Clique para conversar'}</div>
             </div>
           </div>`;
       });
@@ -246,6 +254,7 @@
       document.getElementById('privateRoom').classList.remove('hidden');
       document.getElementById('roomAvatar').innerHTML = `<img src="${p && p.fotos && p.fotos[0] ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">`;
       document.getElementById('roomName').textContent = p ? p.nick : '---';
+      lastPrivateIds = '';
       renderPrivateMessages();
     };
 
@@ -270,6 +279,12 @@
       }
 
       const container = document.getElementById('privateMsgList');
+      const sig = (msgs || []).map(m => m.id).join(',');
+      if (sig === lastPrivateIds) return;
+      lastPrivateIds = sig;
+      const scrollEl = document.getElementById('privateMessages');
+      const wasNearBottom = scrollEl ? (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 120 : true;
+      const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
       container.innerHTML = '';
 
       if (!msgs || msgs.length === 0) {
@@ -295,7 +310,8 @@
             </div>
           </div>`;
       });
-      scrollToBottom('privateMessages');
+      if (wasNearBottom) scrollToBottom('privateMessages');
+      else if (scrollEl) scrollEl.scrollTop = prevScrollTop;
     }
 
     window.sendCurrentMessage = async function() {
@@ -310,12 +326,16 @@
         try {
           await sendMessageSupabase(myId, myNick, content, false, null);
         } catch (e) { /* fallback */ }
+        lastGlobalIds = '';
         renderGlobalMessages();
+        scrollToBottom('globalChat');
       } else if (activePrivateChat) {
         try {
           await sendMessageSupabase(myId, myNick, content, true, activePrivateChat);
         } catch (e) { /* fallback */ }
+        lastPrivateIds = '';
         renderPrivateMessages();
+        scrollToBottom('privateMessages');
       }
       input.value = '';
     };
@@ -404,7 +424,14 @@
     }, 3000);
 
     // Init
-    loadProfiles().then(() => renderGlobalMessages());
+    loadProfiles().then(() => {
+      if (_openTo) {
+        switchTab('private');
+        openPrivateChat(_openTo);
+      } else {
+        renderGlobalMessages();
+      }
+    });
   </script>
 </body>
 </html>
