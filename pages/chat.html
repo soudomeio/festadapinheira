@@ -102,7 +102,7 @@
     let allProfiles = [];
     let lastGlobalIds = '';
     let lastPrivateIds = '';
-    let privateFirstRender = true;
+    let privateShouldScroll = true; // true = rola ate o fim na proxima renderizacao
     // Aceita ?to=<profileId> para abrir chat direto
     const _urlParams = new URLSearchParams(window.location.search);
     const _openTo = _urlParams.get('to');
@@ -256,7 +256,7 @@
       document.getElementById('roomAvatar').innerHTML = `<img src="${p && p.fotos && p.fotos[0] ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">`;
       document.getElementById('roomName').textContent = p ? p.nick : '---';
       lastPrivateIds = '';
-      privateFirstRender = true;
+      privateShouldScroll = true; // primeira abertura: rolar ate o fim
       renderPrivateMessages();
     };
 
@@ -284,9 +284,10 @@
       const sig = (msgs || []).map(m => m.id).join(',');
       if (sig === lastPrivateIds) return;
       lastPrivateIds = sig;
+
       const scrollEl = document.getElementById('privateMessages');
-      const wasNearBottom = scrollEl ? (scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight) < 120 : true;
       const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+      const prevHeight = scrollEl ? scrollEl.scrollHeight : 0;
       container.innerHTML = '';
 
       if (!msgs || msgs.length === 0) {
@@ -312,13 +313,17 @@
             </div>
           </div>`;
       });
-      // So rola para o fim na primeira abertura da conversa.
-      // Depois disso, preserva a posicao do usuario para nao "subir sozinho".
-      if (privateFirstRender) {
+
+      // Controle de scroll:
+      // - privateShouldScroll == true: rola ate o fim (abertura do chat / envio de mensagem)
+      // - false: mantem a posicao visual do usuario para nao "subir sozinho" nas atualizacoes automaticas
+      if (privateShouldScroll) {
         scrollToBottom('privateMessages');
-        privateFirstRender = false;
+        privateShouldScroll = false;
       } else if (scrollEl) {
-        scrollEl.scrollTop = prevScrollTop;
+        // Ajusta scrollTop proporcionalmente ao crescimento do container para manter a mesma posicao visual
+        const heightDiff = scrollEl.scrollHeight - prevHeight;
+        scrollEl.scrollTop = prevScrollTop + heightDiff;
       }
     }
 
@@ -342,8 +347,8 @@
           await sendMessageSupabase(myId, myNick, content, true, activePrivateChat);
         } catch (e) { /* fallback */ }
         lastPrivateIds = '';
+        privateShouldScroll = true; // ao enviar, rolar ate o fim na proxima renderizacao
         renderPrivateMessages();
-        scrollToBottom('privateMessages');
       }
       input.value = '';
     };
@@ -398,6 +403,8 @@
         renderGlobalMessages();
       } else if (activePrivateChat) {
         try { await sendMessageSupabase(myId, myNick, content, true, activePrivateChat); } catch (e) { /* */ }
+        lastPrivateIds = '';
+        privateShouldScroll = true; // ao enviar foto, rolar ate o fim
         renderPrivateMessages();
       }
     }
