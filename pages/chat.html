@@ -102,6 +102,7 @@
     let allProfiles = [];
     let lastGlobalIds = '';
     let lastPrivateIds = '';
+    let privateFirstRender = true;
     // Aceita ?to=<profileId> para abrir chat direto
     const _urlParams = new URLSearchParams(window.location.search);
     const _openTo = _urlParams.get('to');
@@ -255,6 +256,7 @@
       document.getElementById('roomAvatar').innerHTML = `<img src="${p && p.fotos && p.fotos[0] ? p.fotos[0] : ''}" style="width: 100%; height: 100%; object-fit: cover;">`;
       document.getElementById('roomName').textContent = p ? p.nick : '---';
       lastPrivateIds = '';
+      privateFirstRender = true;
       renderPrivateMessages();
     };
 
@@ -310,8 +312,14 @@
             </div>
           </div>`;
       });
-      if (wasNearBottom) scrollToBottom('privateMessages');
-      else if (scrollEl) scrollEl.scrollTop = prevScrollTop;
+      // So rola para o fim na primeira abertura da conversa.
+      // Depois disso, preserva a posicao do usuario para nao "subir sozinho".
+      if (privateFirstRender) {
+        scrollToBottom('privateMessages');
+        privateFirstRender = false;
+      } else if (scrollEl) {
+        scrollEl.scrollTop = prevScrollTop;
+      }
     }
 
     window.sendCurrentMessage = async function() {
