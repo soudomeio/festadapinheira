@@ -4,51 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Matches - Festa da Pinheira</title>
-  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
-  <link rel="stylesheet" href="../assets/css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
   <style> body { font-family: 'Inter', sans-serif; } </style>
 </head>
 <body>
   <div class="app-container">
-    <!-- Guest Badge -->
     <div id="guestBadge" class="guest-badge hidden">CONVIDADO</div>
 
     <div class="page-content">
-      <h1 class="section-title">Meus Matches</h1>
-
-      <!-- Mutual Matches -->
-      <div style="margin-bottom: 24px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#f56565" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <h2 style="font-size: 16px; font-weight: 700;">Matches Mutuos</h2>
-          <span id="countMutual" style="background: #f56565; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px;">0</span>
-        </div>
-        <div id="listMutual"></div>
-      </div>
-
-      <!-- My Interests -->
-      <div style="margin-bottom: 24px;">
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#48bb78" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <h2 style="font-size: 16px; font-weight: 700;">Meus Interesses</h2>
-          <span id="countInterest" style="background: #48bb78; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px;">0</span>
-        </div>
-        <div id="listInterest"></div>
-      </div>
-
-      <!-- Maybe -->
-      <div>
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="#ecc94b" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <h2 style="font-size: 16px; font-weight: 700;">Talvez Role</h2>
-          <span id="countMaybe" style="background: #ecc94b; color: #1a202c; font-size: 11px; padding: 2px 8px; border-radius: 10px;">0</span>
-        </div>
-        <div id="listMaybe"></div>
-      </div>
+      <h1 class="section-title">Perfis Cadastrados</h1>
+      <p style="color: #a0aec0; font-size: 13px; margin-bottom: 16px;">Todos os casais cadastrados. Faca sua reacao e inicie um chat quando quiser.</p>
+      <div id="listAll"></div>
     </div>
 
-    <!-- Bottom Nav -->
     <nav class="bottom-nav">
       <a href="home.html" class="nav-item">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -62,16 +31,17 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         Matches
       </a>
-      <a href="perfil.html" class="nav-item">
+      <a href="editar-perfil.html" class="nav-item">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         Perfil
       </a>
     </nav>
   </div>
 
-  <script src="../assets/js/app.js"></script>
+  <script type="module" src="../assets/js/app.js"></script>
   <script>
     let allProfiles = [];
+    let myReactions = {};
 
     async function loadData() {
       try {
@@ -79,83 +49,94 @@
         if (data && data.length > 0) {
           allProfiles = data.map(p => ({
             id: p.id, nick: p.nick, cidade: p.cidade, fotos: p.fotos || [],
-            online: p.online || false,
+            nome_dele: p.nome_dele || '', nome_dela: p.nome_dela || '',
+            online: p.online || false, preferencias: p.preferencias || [],
           }));
         }
       } catch (e) {
         allProfiles = DB.get('profiles', []);
       }
-      renderMatches();
+      try { myReactions = await getMyReactions(getMyId()); } catch (e) { myReactions = {}; }
+      renderAll();
     }
 
-    async function renderMatches() {
-      let matches = [];
+    async function reactProfile(profileId, status) {
+      const myId = getMyId();
       try {
-        matches = await getMatchesSupabase();
+        await addMatchSupabase(myId, profileId, status);
+        myReactions[profileId] = status;
+        renderAll();
       } catch (e) {
-        matches = DB.get('matches', []);
+        alert('Erro ao salvar reacao');
       }
-
-      const currentUser = getCurrentUser();
-      const myId = currentUser ? currentUser.id : '';
-
-      // DEDUPLICAR: pega o OUTRO perfil de cada match, sem repetir
-      const seenIds = new Set();
-      const uniqueMatches = [];
-
-      matches.forEach(m => {
-        if (!m.mutual) return; // so matches mutuos
-        const otherId = m.from_profile_id === myId ? m.to_profile_id : m.from_profile_id;
-        if (otherId === myId) return; // nao mostra si mesmo
-        if (seenIds.has(otherId)) return; // ja mostrou
-        seenIds.add(otherId);
-        uniqueMatches.push({ ...m, otherId });
-      });
-
-      document.getElementById('countMutual').textContent = uniqueMatches.length;
-      document.getElementById('countInterest').textContent = 0;
-      document.getElementById('countMaybe').textContent = 0;
-
-      renderList('listMutual', uniqueMatches, true);
-      renderList('listInterest', [], false);
-      renderList('listMaybe', [], false, true);
     }
 
-    function renderList(elId, matches, showChat, isMaybe) {
-      const el = document.getElementById(elId);
-      if (matches.length === 0) {
-        el.innerHTML = `<div style="background: #2d3748; border-radius: 16px; padding: 24px; text-align: center;"><p style="color: #a0aec0; font-size: 14px;">Nenhum resultado aqui.</p></div>`;
+    function renderAll() {
+      const el = document.getElementById('listAll');
+      const myId = getMyId();
+      const profiles = allProfiles.filter(p => p.id !== myId);
+
+      if (profiles.length === 0) {
+        el.innerHTML = `<div style="background: #2d3748; border-radius: 16px; padding: 24px; text-align: center;"><p style="color: #a0aec0; font-size: 14px;">Nenhum perfil cadastrado ainda.</p></div>`;
         return;
       }
 
       el.innerHTML = '';
-      matches.forEach(m => {
-        const otherId = m.otherId || (m.from_profile_id === getCurrentUser()?.id ? m.to_profile_id : m.from_profile_id);
-        const p = allProfiles.find(prof => prof.id === otherId);
-        if (!p) return;
+      profiles.forEach(p => {
+        const foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=200&h=200&fit=crop';
+        const reaction = myReactions[p.id];
+        const reactionColors = { interesse: '#48bb78', talvez: '#ecc94b', nao: '#f56565' };
+        const reactionLabels = { interesse: 'Interesse', talvez: 'Talvez', nao: 'Passou' };
+        const reactionIcons = {
+          interesse: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+          talvez: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+          nao: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+        };
 
-        const foto = (p.fotos && p.fotos[0]) ? p.fotos[0] : '';
+        const reactionBadge = reaction
+          ? `<div style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;background:${reactionColors[reaction]}20;color:${reactionColors[reaction]};border:1px solid ${reactionColors[reaction]};">${reactionIcons[reaction]} ${reactionLabels[reaction]}</div>`
+          : '';
 
         el.innerHTML += `
-          <div class="match-card" style="${isMaybe ? 'opacity: 0.6;' : ''}">
-            <div style="position: relative;">
-              <div class="match-avatar">
-                <img src="${foto}" alt="" onerror="this.style.display='none'">
+          <div class="match-card" style="flex-direction:column;align-items:stretch;gap:0;padding:16px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <div style="position:relative;">
+                <div class="match-avatar">
+                  <img src="${foto}" alt="" onerror="this.src='https://images.unsplash.com/photo-1522673607200-164d1b6ce486?w=200&h=200&fit=crop'">
+                </div>
+                ${p.online ? '<div class="online-dot"></div>' : ''}
               </div>
-              ${showChat ? '<div style="position: absolute; bottom: -2px; right: -2px; width: 20px; height: 20px; background: #f56565; border-radius: 50%; display: flex; align-items: center; justify-content: center;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>' : ''}
-            </div>
-            <div class="match-info">
-              <div class="match-name">${p.nick || '---'}</div>
-              <div style="font-size: 12px; color: #a0aec0; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                ${p.cidade || '---'}
+              <div class="match-info">
+                <div class="match-name">${p.nick || '---'}</div>
+                <div style="font-size: 12px; color: #a0aec0; display: flex; align-items: center; gap: 4px; margin-top: 2px;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  ${p.cidade || '---'}
+                </div>
+                ${reactionBadge}
               </div>
+              <a href="chat.html?p=${p.id}" style="width: 40px; height: 40px; background: #ecc94b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; text-decoration:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a202c" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </a>
             </div>
-            ${showChat ? `<a href="chat.html" style="width: 40px; height: 40px; background: #ecc94b; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a202c" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></a>` : ''}
+            <div style="display:flex;gap:8px;">
+              <button onclick="reactProfile('${p.id}','nao')" style="flex:1;padding:10px;border-radius:12px;border:2px solid ${reaction==='nao'?'#f56565':'#2d3748'};background:${reaction==='nao'?'#f5656520':'transparent'};color:#f56565;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Passar
+              </button>
+              <button onclick="reactProfile('${p.id}','talvez')" style="flex:1;padding:10px;border-radius:12px;border:2px solid ${reaction==='talvez'?'#ecc94b':'#2d3748'};background:${reaction==='talvez'?'#ecc94b20':'transparent'};color:#ecc94b;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                Talvez
+              </button>
+              <button onclick="reactProfile('${p.id}','interesse')" style="flex:1;padding:10px;border-radius:12px;border:2px solid ${reaction==='interesse'?'#48bb78':'#2d3748'};background:${reaction==='interesse'?'#48bb7820':'transparent'};color:#48bb78;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                Interesse
+              </button>
+            </div>
           </div>`;
       });
     }
 
+    window.reactProfile = reactProfile;
     loadData();
   </script>
 </body>
