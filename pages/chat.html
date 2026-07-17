@@ -102,6 +102,7 @@
     let allProfiles = [];
     let lastGlobalIds = '';
     let lastPrivateIds = '';
+    let lastPrivateListIds = '';
     let privateShouldScroll = true; // true = rola ate o fim na proxima renderizacao
     // Aceita ?to=<profileId> para abrir chat direto
     const _urlParams = new URLSearchParams(window.location.search);
@@ -202,7 +203,6 @@
     async function renderPrivateList() {
       const container = document.getElementById('privateConversations');
       const myId = currentUser ? currentUser.id : '';
-      container.innerHTML = '';
 
       // Carrega meus matches para marcar quem tem match mutuo
       let myMatches = {};
@@ -217,10 +217,6 @@
 
       // Lista TODOS os perfis (permite conversar sem match)
       const others = allProfiles.filter(p => p.id !== myId);
-      if (others.length === 0) {
-        container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#a0aec0;">Nenhum perfil disponivel.</div>`;
-        return;
-      }
 
       // Ordena: matches mutuos primeiro
       others.sort((a, b) => {
@@ -228,6 +224,19 @@
         const bm = myMatches[b.id] && myMatches[b.id].mutual ? 1 : 0;
         return bm - am;
       });
+
+      // Se nada mudou desde a ultima renderizacao, nao reconstroi a lista
+      // (evita o "piscar" e o scroll subindo sozinho no auto-refresh de 3s)
+      const sig = others.map(p => `${p.id}:${myMatches[p.id] && myMatches[p.id].mutual ? 1 : 0}:${p.online ? 1 : 0}`).join(',');
+      if (sig === lastPrivateListIds) return;
+      lastPrivateListIds = sig;
+
+      container.innerHTML = '';
+
+      if (others.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#a0aec0;">Nenhum perfil disponivel.</div>`;
+        return;
+      }
 
       others.forEach(p => {
         const mutual = myMatches[p.id] && myMatches[p.id].mutual;
